@@ -1,6 +1,26 @@
 # 🏸 CourtBook Pro — Enterprise Sports Court Booking Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-courtbook--pro.onrender.com-orange?style=for-the-badge&logo=render)](https://courtbook-pro-4c7j.onrender.com/)
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
+[![PostgreSQL](https://img.shields.io/badge/Neon%20PostgreSQL-AWS%20Cloud-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
+
 An industry-standard, full-stack multi-resource court reservation and complex management platform built with **Python**, **Flask 3+**, **SQLAlchemy 2.0**, **Pydantic**, and a responsive **Vanilla CSS Design System**.
+
+---
+
+## 🌐 Live Production Deployment
+
+👉 **Live URL**: **[https://courtbook-pro-4c7j.onrender.com/](https://courtbook-pro-4c7j.onrender.com/)**
+
+### ⚡ Quick Demo Credentials
+
+| Role | Username | Password | Access Area |
+| :--- | :--- | :--- | :--- |
+| **👑 Admin** | `admin` | `Admin@123456` | Full Access: Operations Console, Courts, Coaches, Stock, Pricing & Master Bookings |
+| **🏸 Player** | `demo_user` | `Demo@123456` | Player Access: Court Reservation Hub & Match History |
+
+*(You can also use the 1-Click Quick Login buttons on the login page)*
 
 ---
 
