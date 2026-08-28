@@ -335,8 +335,11 @@ def create_booking_endpoint():
 
 @api_bp.route('/bookings/<int:booking_id>/cancel', methods=['POST'])
 @api_bp.route('/v1/bookings/<int:booking_id>/cancel', methods=['POST'])
+@api_bp.route('/admin/bookings/<int:booking_id>/cancel', methods=['POST'])
+@api_bp.route('/v1/admin/bookings/<int:booking_id>/cancel', methods=['POST'])
 @api_login_required
 def cancel_booking_endpoint(booking_id: int):
+
     """Cancels a booking and frees its slot locks."""
     try:
         BookingService.cancel_booking(
