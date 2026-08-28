@@ -39,14 +39,16 @@ def create_app(config_name: str = None) -> Flask:
     @app.after_request
     def set_performance_headers(response):
         """Set optimal caching and compression headers based on content type."""
-        # Static files: Cache for 24 hours (allows fast repeated loads while preventing stale asset locks)
+        # Static files (CSS/JS/images/fonts): Cache for 24 hours
         if request.path.startswith('/static/'):
             response.headers['Cache-Control'] = 'public, max-age=86400'
-        elif request.path.startswith('/api/') or request.path.startswith('/auth') or request.path in ('/login', '/signup'):
+        else:
+            # ALL HTML pages (including /admin and /) and API routes must never be stored in browser bfcache
             response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0, private'
             response.headers['Pragma'] = 'no-cache'
             response.headers['Expires'] = '0'
         return response
+
 
 
 

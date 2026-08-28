@@ -47,7 +47,7 @@
                     <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);">{{ current_user.username }}</span>
                 </div>
                 
-                <a href="{{ url_for('auth.logout') }}" class="btn-manga btn-manga-danger btn-manga-sm" style="margin-left: 10px;">
+                <a href="{{ url_for('auth.logout') }}" onclick="event.preventDefault(); window.location.replace('{{ url_for('auth.logout') }}');" class="btn-manga btn-manga-danger btn-manga-sm" style="margin-left: 10px;">
                     <span>🚪</span> Logout
                 </a>
             </div>
@@ -92,8 +92,17 @@
 
     <div id="toast-container"></div>
 
-    <!-- Core Scripts -->
+    <!-- Core Scripts & Navigation Guards -->
     <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+    <script>
+        // Back-Forward Navigation Guard:
+        // If restored from browser RAM/bfcache after logout, force reload to let server verify session
+        window.addEventListener('pageshow', function (event) {
+            if (event.persisted || (window.performance && window.performance.getEntriesByType("navigation")[0]?.type === "back_forward")) {
+                window.location.reload();
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

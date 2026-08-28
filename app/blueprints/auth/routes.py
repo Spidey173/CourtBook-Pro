@@ -115,13 +115,18 @@ def signup():
 
 
 @auth_bp.route('/logout', methods=['GET', 'POST'])
-@login_required
 def logout():
-    """Logs out the current authenticated user and redirects to login."""
-    logout_user()
+    """Logs out the current user, clears session, and redirects to login."""
+    if current_user.is_authenticated:
+        logout_user()
     if request.is_json:
         return success_response(message="Logged out successfully")
-    return redirect(url_for('auth.login'))
+    response = redirect(url_for('auth.login'))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0, private'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
 
 
 @auth_bp.route('/me', methods=['GET'])
