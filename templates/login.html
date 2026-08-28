@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Sign In — CourtBook Pro 🏸</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+
+    <!-- Atmospheric Glow & Neon Stadium Background -->
+    <div class="auth-ambient-backdrop"></div>
+    <div class="auth-ambient-grid"></div>
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Main Dual-Pane Showcase -->
+    <div class="auth-wrapper">
+        <div class="auth-split-grid">
+            
+            <!-- Left Pane: Badminton Showcase -->
+            <div class="auth-hero-pane">
+                <div>
+                    <div class="brand-badge">
+                        <span class="pulse-dot"></span>
+                        CourtBook Pro Elite
+                    </div>
+
+                    <h1 class="hero-title">
+                        SERVE.<br>
+                        SMASH.<br>
+                        <span class="gradient-text">CONQUER.</span>
+                    </h1>
+
+                    <p class="hero-subtitle">
+                        Step onto tournament-grade wooden & synthetic courts. Book courts, rent premium rackets, and train with pro coaches in seconds.
+                    </p>
+
+                    <!-- Feature Highlights -->
+                    <div class="hero-features">
+                        <div class="feature-pill">
+                            <div class="feature-icon">⚡</div>
+                            <div class="feature-info">
+                                <h4>Instant Multi-Slot Booking</h4>
+                                <p>Reserve consecutive hours with automatic multi-hour discounts.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-pill">
+                            <div class="feature-icon">🏸</div>
+                            <div class="feature-info">
+                                <h4>Pro Equipment & Bundles</h4>
+                                <p>Rent Yonex rackets & shuttlecock tubes with bundle savings.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-pill">
+                            <div class="feature-icon">🏆</div>
+                            <div class="feature-info">
+                                <h4>Certified Personal Coaches</h4>
+                                <p>Upgrade your footwork, smash power, and tactical game.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Match Status Ticker -->
+                <div class="live-court-ticker">
+                    <span>🟢 <strong>Arena Status:</strong> 4 Courts Online</span>
+                    <span>⚡ Real-Time Booking Active</span>
+                </div>
+            </div>
+
+            <!-- Right Pane: Interactive Auth Form -->
+            <div class="auth-form-pane">
+                
+                <!-- Tab Switcher -->
+                <div class="auth-tabs">
+                    <a href="{{ url_for('auth.login') }}" class="auth-tab-btn active">⚡ Sign In</a>
+                    <a href="{{ url_for('auth.signup') }}" class="auth-tab-btn">🚀 Create Account</a>
+                </div>
+
+                <div id="authAlert" class="auth-alert auth-alert-error">
+                    <span>⚠️</span>
+                    <div id="authAlertText">Error message here</div>
+                </div>
+
+                <form id="authLoginForm">
+                    <div class="input-wrap">
+                        <label for="loginUsername">Username or Email</label>
+                        <div class="input-box">
+                            <span class="field-icon">👤</span>
+                            <input type="text" id="loginUsername" placeholder="Enter your username or email" required autofocus autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="input-wrap">
+                        <label for="loginPassword">Password</label>
+                        <div class="input-box">
+                            <span class="field-icon">🔒</span>
+                            <input type="password" id="loginPassword" placeholder="Enter your secret password" required autocomplete="current-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('loginPassword', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmitLogin" class="btn-smash">
+                        <span>Smash Sign In</span>
+                        <span>🏸</span>
+                    </button>
+                </form>
+
+                <div class="auth-divider">
+                    <span>Quick Demo Access</span>
+                </div>
+
+                <div class="demo-login-group">
+                    <button type="button" class="btn-demo btn-demo-user" onclick="quickLogin('user')">
+                        👤 Demo Customer
+                    </button>
+                    <button type="button" class="btn-demo btn-demo-admin" onclick="quickLogin('admin')">
+                        👑 Demo Admin
+                    </button>
+                </div>
+
+                <div style="text-align: center; margin-top: 24px; font-size: 0.88rem; color: #94a3b8;">
+                    Don't have an account yet? 
+                    <a href="{{ url_for('auth.signup') }}" style="color: var(--manga-orange-light); font-weight: 700; text-decoration: none;">Create Free Account</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth_particles.js') }}"></script>
+    <script>
+        async function quickLogin(role) {
+            const alertBox = document.getElementById('authAlert');
+            const alertText = document.getElementById('authAlertText');
+            
+            alertBox.style.display = 'none';
+            
+            const demoButtons = document.querySelectorAll('.btn-demo');
+            demoButtons.forEach(btn => btn.disabled = true);
+            
+            try {
+                const res = await ApiClient.post("{{ url_for('auth.demo_login') }}", { role });
+                if (res.success) {
+                    ApiClient.showToast('Demo login successful! Entering arena...', 'success');
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('main.home') }}";
+                    }, 500);
+                } else {
+                    alertText.textContent = res.message || 'Demo login failed.';
+                    alertBox.style.display = 'flex';
+                    demoButtons.forEach(btn => btn.disabled = false);
+                }
+            } catch (err) {
+                alertText.textContent = err.message || 'Demo authentication error. Please try again.';
+                alertBox.style.display = 'flex';
+                demoButtons.forEach(btn => btn.disabled = false);
+            }
+        }
+
+        function togglePasswordVisibility(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        document.getElementById('authLoginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('authAlert');
+            const alertText = document.getElementById('authAlertText');
+            const btn = document.getElementById('btnSubmitLogin');
+
+            alertBox.style.display = 'none';
+            btn.disabled = true;
+            btn.innerHTML = '<span>Verifying Court Credentials...</span>';
+
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await ApiClient.post("{{ url_for('auth.login') }}", { username, password });
+                if (res.success) {
+                    btn.style.background = 'linear-gradient(135deg, #00f5a0 0%, #00d2ff 100%)';
+                    btn.innerHTML = '<span>Match Approved! Entering Arena... 🏆</span>';
+                    ApiClient.showToast('Welcome back! Entering arena...', 'success');
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('main.home') }}";
+                    }, 500);
+                } else {
+                    alertText.textContent = res.message || 'Invalid credentials.';
+                    alertBox.style.display = 'flex';
+                }
+            } catch (err) {
+                alertText.textContent = err.message || 'Authentication error. Please try again.';
+                alertBox.style.display = 'flex';
+            } finally {
+                if (alertBox.style.display === 'flex') {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Smash Sign In</span><span>🏸</span>';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

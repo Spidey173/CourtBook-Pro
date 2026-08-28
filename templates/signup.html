@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Join CourtBook Pro 🏸 — Create Account</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+
+    <!-- Atmospheric Glow & Neon Stadium Background -->
+    <div class="auth-ambient-backdrop"></div>
+    <div class="auth-ambient-grid"></div>
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Main Dual-Pane Showcase -->
+    <div class="auth-wrapper">
+        <div class="auth-split-grid">
+            
+            <!-- Left Pane: Badminton Showcase -->
+            <div class="auth-hero-pane">
+                <div>
+                    <div class="brand-badge">
+                        <span class="pulse-dot"></span>
+                        Join The Champions Club
+                    </div>
+
+                    <h1 class="hero-title">
+                        BECOME A<br>
+                        COURT<br>
+                        <span class="gradient-text">LEGEND.</span>
+                    </h1>
+
+                    <p class="hero-subtitle">
+                        Create your free player account in under 30 seconds. Unlock instant court bookings, dynamic bundle discounts, and expert coaching.
+                    </p>
+
+                    <!-- Feature Highlights -->
+                    <div class="hero-features">
+                        <div class="feature-pill">
+                            <div class="feature-icon">🛡️</div>
+                            <div class="feature-info">
+                                <h4>Guaranteed Slot Reservations</h4>
+                                <p>Physical database locks prevent double-booking collisions.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-pill">
+                            <div class="feature-icon">🎁</div>
+                            <div class="feature-info">
+                                <h4>Stackable Tier Discounts</h4>
+                                <p>Save up to 30% on multi-hour bookings and equipment bundles.</p>
+                            </div>
+                        </div>
+
+                        <div class="feature-pill">
+                            <div class="feature-icon">📊</div>
+                            <div class="feature-info">
+                                <h4>Player Match History</h4>
+                                <p>Track all past bookings, receipts, and personal coaching sessions.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Match Status Ticker -->
+                <div class="live-court-ticker">
+                    <span>🟢 <strong>Free Membership:</strong> Instant Access</span>
+                    <span>🏸 Zero Hidden Fees</span>
+                </div>
+            </div>
+
+            <!-- Right Pane: Interactive Signup Form -->
+            <div class="auth-form-pane">
+                
+                <!-- Tab Switcher -->
+                <div class="auth-tabs">
+                    <a href="{{ url_for('auth.login') }}" class="auth-tab-btn">⚡ Sign In</a>
+                    <a href="{{ url_for('auth.signup') }}" class="auth-tab-btn active">🚀 Create Account</a>
+                </div>
+
+                <div id="signupAlert" class="auth-alert auth-alert-error">
+                    <span>⚠️</span>
+                    <div id="signupAlertText">Error message here</div>
+                </div>
+
+                <form id="authSignupForm">
+                    <div class="input-wrap">
+                        <label for="signupUsername">Choose Username</label>
+                        <div class="input-box">
+                            <span class="field-icon">👤</span>
+                            <input type="text" id="signupUsername" placeholder="e.g. smash_king99" required minlength="3" autofocus autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="input-wrap">
+                        <label for="signupEmail">Email Address</label>
+                        <div class="input-box">
+                            <span class="field-icon">✉️</span>
+                            <input type="email" id="signupEmail" placeholder="player@courtbook.com" required autocomplete="email">
+                        </div>
+                    </div>
+
+                    <div class="input-wrap">
+                        <label for="signupPassword">Create Password</label>
+                        <div class="input-box">
+                            <span class="field-icon">🔒</span>
+                            <input type="password" id="signupPassword" placeholder="Min. 6 characters" required minlength="6" oninput="checkPasswordStrength(this.value)" autocomplete="new-password">
+                            <button type="button" class="toggle-password" onclick="togglePasswordVisibility('signupPassword', this)">👁️</button>
+                        </div>
+                    </div>
+
+                    <!-- Password Strength Meter -->
+                    <div class="password-meter-wrap">
+                        <div class="meter-bar">
+                            <div id="passwordMeterFill" class="meter-fill"></div>
+                        </div>
+                        <div class="meter-label">
+                            <span id="passwordStrengthText">Password Security</span>
+                            <span id="passwordCriteria">Min 6 characters</span>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnSubmitSignup" class="btn-smash">
+                        <span>Register & Step on Court</span>
+                        <span>🏸</span>
+                    </button>
+                </form>
+
+                <div style="text-align: center; margin-top: 20px; font-size: 0.85rem; color: #64748b;">
+                    By signing up, you agree to our Fair Play Court Reservation Policy.
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth_particles.js') }}"></script>
+    <script>
+        function togglePasswordVisibility(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        function checkPasswordStrength(password) {
+            const fill = document.getElementById('passwordMeterFill');
+            const label = document.getElementById('passwordStrengthText');
+
+            let score = 0;
+            if (password.length >= 6) score += 25;
+            if (password.length >= 8) score += 25;
+            if (/[0-9]/.test(password)) score += 25;
+            if (/[^A-Za-z0-9]/.test(password) || /[A-Z]/.test(password)) score += 25;
+
+            fill.style.width = score + '%';
+
+            if (score <= 25) {
+                fill.style.background = '#ef4444';
+                label.innerHTML = 'Weak Serve ⚠️';
+                label.style.color = '#fca5a5';
+            } else if (score <= 50) {
+                fill.style.background = '#f59e0b';
+                label.innerHTML = 'Fair Defense 🛡️';
+                label.style.color = '#fde68a';
+            } else if (score <= 75) {
+                fill.style.background = '#3b82f6';
+                label.innerHTML = 'Strong Rally ⚡';
+                label.style.color = '#93c5fd';
+            } else {
+                fill.style.background = '#00f5a0';
+                label.innerHTML = 'Tournament Smash 🏆';
+                label.style.color = '#6ee7b7';
+            }
+        }
+
+        document.getElementById('authSignupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const alertBox = document.getElementById('signupAlert');
+            const alertText = document.getElementById('signupAlertText');
+            const btn = document.getElementById('btnSubmitSignup');
+
+            alertBox.style.display = 'none';
+            btn.disabled = true;
+            btn.innerHTML = '<span>Creating Player Pass...</span>';
+
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+
+            try {
+                const res = await ApiClient.post("{{ url_for('auth.signup') }}", { username, email, password });
+                if (res.success) {
+                    btn.style.background = 'linear-gradient(135deg, #00f5a0 0%, #00d2ff 100%)';
+                    btn.innerHTML = '<span>Player Account Ready! Entering Arena... 🚀</span>';
+                    ApiClient.showToast('Account created! Welcome to CourtBook Pro!', 'success');
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('main.home') }}";
+                    }, 500);
+                } else {
+                    alertText.textContent = res.message || 'Registration failed.';
+                    alertBox.style.display = 'flex';
+                }
+            } catch (err) {
+                alertText.textContent = err.message || 'Registration error. Please try again.';
+                alertBox.style.display = 'flex';
+            } finally {
+                if (alertBox.style.display === 'flex') {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>Register & Step on Court</span><span>🏸</span>';
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block title %}Operations Console — CourtBook Pro 🏸{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    
+    <!-- 1. Left Vertical Sidebar Navigation -->
+    <aside class="admin-sidebar">
+        <div class="pro-card" style="padding: 20px;">
+            <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim); margin-bottom: 14px; padding-left: 6px;">
+                Console Navigation
+            </div>
+            
+            <nav class="admin-sidebar-nav">
+                <button id="admin-tab-analytics" class="admin-nav-item active" onclick="switchAdminTab('analytics')">
+                    <span class="nav-icon">📈</span>
+                    <span>Analytics & KPIs</span>
+                </button>
+                <button id="admin-tab-courts" class="admin-nav-item" onclick="switchAdminTab('courts')">
+                    <span class="nav-icon">🏸</span>
+                    <span>Courts Catalog</span>
+                </button>
+                <button id="admin-tab-coaches" class="admin-nav-item" onclick="switchAdminTab('coaches')">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span>Coaching Staff</span>
+                </button>
+                <button id="admin-tab-equipment" class="admin-nav-item" onclick="switchAdminTab('equipment')">
+                    <span class="nav-icon">📦</span>
+                    <span>Equipment Stock</span>
+                </button>
+                <button id="admin-tab-pricing" class="admin-nav-item" onclick="switchAdminTab('pricing')">
+                    <span class="nav-icon">💰</span>
+                    <span>Dynamic Pricing</span>
+                </button>
+                <button id="admin-tab-bookings" class="admin-nav-item" onclick="switchAdminTab('bookings')">
+                    <span class="nav-icon">📅</span>
+                    <span>Master Bookings</span>
+                </button>
+                <button id="admin-tab-users" class="admin-nav-item" onclick="switchAdminTab('users')">
+                    <span class="nav-icon">👥</span>
+                    <span>User Accounts</span>
+                </button>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- 2. Right Main Content Workspace -->
+    <main class="admin-main-content">
+        
+        <!-- Header Banner -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 8px;">
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span class="badge-pro badge-admin-manga">Admin Operations</span>
+                    <span style="font-size: 0.8rem; color: var(--accent-green); font-weight: 700;">🟢 Live Arena Hub</span>
+                </div>
+                <h2 style="font-size: 2.1rem; letter-spacing: -0.03em;">Operations Console</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; margin-top: 4px;">Real-time management for arena courts, coaching staff, inventory, dynamic pricing, and revenue</p>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             1. Analytics & KPIs View
+             ========================================================= -->
+        <div id="admin-view-analytics">
+            
+            <!-- Metric KPI Cards -->
+            <div class="grid-4" style="margin-bottom: 28px;">
+                <div class="pro-card pro-card-interactive" style="border-top: 3px solid var(--orange-primary); padding: 24px;">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em;">Total Arena Revenue</div>
+                    <div id="stat-total-revenue" style="font-size: 2.4rem; font-weight: 900; color: var(--orange-primary); margin-top: 8px; font-family: var(--font-heading);">₹0</div>
+                    <div style="font-size: 0.78rem; color: var(--accent-green); margin-top: 4px; font-weight: 700;">↑ Authoritative Server Calculated</div>
+                </div>
+
+                <div class="pro-card pro-card-interactive" style="border-top: 3px solid var(--accent-green); padding: 24px;">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em;">Total Match Bookings</div>
+                    <div id="stat-total-bookings" style="font-size: 2.4rem; font-weight: 900; color: var(--accent-green); margin-top: 8px; font-family: var(--font-heading);">0</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Lifetime Confirmed Bookings</div>
+                </div>
+
+                <div class="pro-card pro-card-interactive" style="border-top: 3px solid var(--accent-cyan); padding: 24px;">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em;">Today's Matches</div>
+                    <div id="stat-today-bookings" style="font-size: 2.4rem; font-weight: 900; color: var(--accent-cyan); margin-top: 8px; font-family: var(--font-heading);">0</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Active Today in Arena</div>
+                </div>
+
+                <div class="pro-card pro-card-interactive" style="border-top: 3px solid var(--accent-gold); padding: 24px;">
+                    <div style="color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 800; letter-spacing: 0.08em;">Registered Players</div>
+                    <div id="stat-total-users" style="font-size: 2.4rem; font-weight: 900; color: var(--accent-gold); margin-top: 8px; font-family: var(--font-heading);">0</div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">Active Player Passes</div>
+                </div>
+            </div>
+
+            <!-- Monthly Trends & Top Customers -->
+            <div class="grid-2">
+                <div class="pro-card" style="padding: 26px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-size: 1.25rem;">📈 Monthly Revenue Trends</h3>
+                        <span class="badge-pro badge-admin-manga">Financial Flow</span>
+                    </div>
+                    <div id="monthly-revenue-container">
+                        <p style="color: var(--text-muted);">Loading revenue analytics...</p>
+                    </div>
+                </div>
+
+                <div class="pro-card" style="padding: 26px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-size: 1.25rem;">🏆 Top Player Spending Ranks</h3>
+                        <span class="badge-pro badge-status-open">VIP Members</span>
+                    </div>
+                    <div id="top-users-container">
+                        <p style="color: var(--text-muted);">Loading top customers...</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- =========================================================
+             2. Courts Management View
+             ========================================================= -->
+        <div id="admin-view-courts" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Courts Catalog</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Configure synthetic & wooden courts and hourly base pricing</p>
+                    </div>
+                    <button class="btn-manga btn-manga-primary btn-manga-sm" onclick="openAddCourtModal()">+ Add New Court</button>
+                </div>
+                <div id="admin-courts-container">
+                    <p style="color: var(--text-muted);">Loading courts...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             3. Coaches Management View
+             ========================================================= -->
+        <div id="admin-view-coaches" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Coaching Staff</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Register certified personal trainers and hourly training fees</p>
+                    </div>
+                    <button class="btn-manga btn-manga-primary btn-manga-sm" onclick="openAddCoachModal()">+ Register Coach</button>
+                </div>
+                <div id="admin-coaches-container">
+                    <p style="color: var(--text-muted);">Loading coaches...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             4. Equipment Stock View
+             ========================================================= -->
+        <div id="admin-view-equipment" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Equipment Inventory Stock</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Track real-time rental inventory for rackets, shoes, and shuttles</p>
+                    </div>
+                    <button class="btn-manga btn-manga-primary btn-manga-sm" onclick="openAddEquipmentModal()">+ Add Item</button>
+                </div>
+                <div id="admin-equipment-container">
+                    <p style="color: var(--text-muted);">Loading equipment...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             5. Dynamic Pricing Rules View
+             ========================================================= -->
+        <div id="admin-view-pricing" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Dynamic Pricing Rules</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Adjust peak hour multipliers, weekend rates, and equipment bundle discounts</p>
+                    </div>
+                    <button class="btn-manga btn-manga-primary btn-manga-sm" onclick="savePricingRules()">💾 Save All Rules</button>
+                </div>
+                <div id="admin-pricing-container">
+                    <p style="color: var(--text-muted);">Loading pricing rules...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             6. All Bookings View
+             ========================================================= -->
+        <div id="admin-view-bookings" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Master Arena Bookings</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Inspect and manage all reservations across the complex</p>
+                    </div>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="bookingSearch" class="pro-form-control" placeholder="Search player or court..." style="width: 220px; padding: 8px 14px;" oninput="onBookingSearch()">
+                        <select id="bookingStatusFilter" class="pro-form-control" style="width: 140px; padding: 8px 14px;" onchange="loadAdminBookings()">
+                            <option value="all">All Statuses</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="past">Past</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="admin-bookings-container">
+                    <p style="color: var(--text-muted);">Loading bookings...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- =========================================================
+             7. User Accounts View
+             ========================================================= -->
+        <div id="admin-view-users" style="display: none;">
+            <div class="pro-card" style="padding: 28px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+                    <div>
+                        <h3 style="font-size: 1.35rem;">Player & Staff Accounts</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">Manage roles, administrator privileges, and activity</p>
+                    </div>
+                    <input type="text" id="userSearch" class="pro-form-control" placeholder="Search by username or email..." style="width: 250px; padding: 8px 14px;" oninput="onUserSearch()">
+                </div>
+                <div id="admin-users-container">
+                    <p style="color: var(--text-muted);">Loading user accounts...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Universal Admin Action Modal Backdrop -->
+<div id="admin-modal" class="pro-modal-backdrop" style="display: none;">
+    <div class="pro-modal-box">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px;">
+            <h3 id="modal-title" style="font-size: 1.3rem;">Action Modal</h3>
+            <button class="btn-manga btn-manga-secondary btn-manga-sm" onclick="closeAdminModal()">✕</button>
+        </div>
+        <div id="modal-body">
+            <!-- Dynamically Injected Form -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

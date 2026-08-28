@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Court Reservation — CourtBook Pro 🏸{% endblock %}
+
+{% block content %}
+<!-- Main Navigation Tabs -->
+<div style="margin-bottom: 28px;">
+    <div style="display: flex; gap: 10px; border-bottom: 1px solid var(--border-card); padding-bottom: 16px; overflow-x: auto;">
+        <button id="tab-book" class="btn-manga btn-manga-primary" onclick="switchMainTab('book')">
+            <span>🏸</span> Court Reservation Hub
+        </button>
+        <button id="tab-history" class="btn-manga btn-manga-secondary" onclick="switchMainTab('history')">
+            <span>📜</span> Player Match History
+        </button>
+    </div>
+</div>
+
+<!-- =========================================================
+     TAB 1: COURT RESERVATION HUB
+     ========================================================= -->
+<div id="view-book">
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 28px;">
+        
+        <!-- Left Step-by-Step Selection Column -->
+        <div style="display: flex; flex-direction: column; gap: 24px;">
+            
+            <!-- Step 1: Date & Duration -->
+            <div class="pro-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem;">1. Select Date & Duration</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Reserve consecutive hours with progressive multi-hour discounts</p>
+                    </div>
+                    <span id="date-preview-badge" class="badge-pro badge-admin-manga">Today's Schedule</span>
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                    <div class="pro-form-group" style="margin-bottom: 0;">
+                        <label class="pro-form-label" for="bookingDate">Reservation Date</label>
+                        <input type="date" id="bookingDate" class="pro-form-control" onchange="onDateOrDurationChange()">
+                    </div>
+                    <div class="pro-form-group" style="margin-bottom: 0;">
+                        <label class="pro-form-label" for="bookingDuration">Session Duration</label>
+                        <select id="bookingDuration" class="pro-form-control" onchange="onDateOrDurationChange()">
+                            <option value="1">1 Hour (Standard Rate)</option>
+                            <option value="2">2 Hours (⚡ 10% Multi-Hour Discount)</option>
+                            <option value="3">3 Hours (⚡ 20% Multi-Hour Discount)</option>
+                            <option value="4">4 Hours (⚡ 30% Multi-Hour Discount)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Courts Selection -->
+            <div class="pro-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem;">2. Choose Court</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">High-traction BWF certified wooden and synthetic courts</p>
+                    </div>
+                    <span class="badge-pro badge-member-manga">4 Courts Available</span>
+                </div>
+                <div id="courts-grid" class="grid-2">
+                    <div style="color: var(--text-muted);">Loading arena courts...</div>
+                </div>
+            </div>
+
+            <!-- Step 3: Time Slot Grid -->
+            <div class="pro-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem;">3. Select Start Time</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Atomic slot locking guarantees zero double-bookings</p>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-dim);">Operating: 06:00 - 22:00</span>
+                </div>
+                <div id="slots-container">
+                    <p style="color: var(--text-muted); font-size: 0.9rem;">👉 Please select a court above to view real-time available slots.</p>
+                </div>
+            </div>
+
+            <!-- Step 4: Certified Coach Selection -->
+            <div class="pro-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem;">4. Certified Coaching Staff (Optional)</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">One-on-one professional training to upgrade your smash and tactics</p>
+                    </div>
+                    <span class="badge-pro badge-admin-manga">BWF Certified</span>
+                </div>
+                <div id="coaches-grid" class="grid-3">
+                    <!-- Dynamic coaches rendered here -->
+                </div>
+            </div>
+
+            <!-- Step 5: Equipment Rentals -->
+            <div class="pro-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem;">5. Premium Equipment Rentals (Optional)</h3>
+                        <p style="color: var(--text-muted); font-size: 0.85rem;">Rent Yonex carbon rackets, non-marking shoes, and tournament shuttlecock tubes</p>
+                    </div>
+                    <span class="badge-pro badge-status-open">🎁 Bundle 3+ Items for 15% OFF</span>
+                </div>
+                <div id="equipment-grid" class="grid-2">
+                    <!-- Dynamic equipment rendered here -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Sticky Summary & Checkout Widget Column -->
+        <div>
+            <div class="sticky-summary-widget">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-card); padding-bottom: 14px;">
+                    <h3 style="font-size: 1.3rem;">Booking Summary</h3>
+                    <span class="badge-pro badge-admin-manga">Live Quote</span>
+                </div>
+
+                <div id="summary-empty" style="text-align: center; padding: 36px 0; color: var(--text-muted);">
+                    <div style="font-size: 2.5rem; margin-bottom: 10px; opacity: 0.6;">🏸</div>
+                    <p style="font-size: 0.95rem; font-weight: 600;">Choose a Court & Start Time</p>
+                    <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;">Real-time price calculation will automatically update here.</p>
+                </div>
+
+                <div id="summary-content" style="display: none;">
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+                        <div class="price-line-item">
+                            <span>Selected Court:</span>
+                            <span id="sum-court" style="font-weight: 800; color: var(--text-white);">-</span>
+                        </div>
+                        <div class="price-line-item">
+                            <span>Date & Time:</span>
+                            <span id="sum-time" style="font-weight: 800; color: var(--text-white);">-</span>
+                        </div>
+                        <div class="price-line-item">
+                            <span>Duration:</span>
+                            <span id="sum-duration" style="font-weight: 800; color: var(--text-white);">-</span>
+                        </div>
+                        <div class="price-line-item">
+                            <span>Personal Coach:</span>
+                            <span id="sum-coach" style="font-weight: 800; color: var(--orange-light);">None</span>
+                        </div>
+                    </div>
+
+                    <!-- Itemized Breakdown -->
+                    <div style="border-top: 1px dashed var(--border-card); padding-top: 16px; margin-top: 16px;">
+                        <h4 style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 12px;">Authoritative Breakdown</h4>
+                        <div id="breakdown-list" style="display: flex; flex-direction: column; gap: 8px;">
+                            <!-- Injected Line Items -->
+                        </div>
+                    </div>
+
+                    <!-- Total Amount -->
+                    <div style="border-top: 2px solid var(--border-card); padding-top: 18px; margin-top: 20px; display: flex; justify-content: space-between; align-items: baseline;">
+                        <span style="font-size: 1.1rem; font-weight: 800; color: var(--text-white);">Total Due:</span>
+                        <span id="sum-total" class="price-total-badge">₹0</span>
+                    </div>
+
+                    <button id="btnConfirmBooking" class="btn-manga btn-manga-primary" style="width: 100%; margin-top: 24px; padding: 16px; font-size: 1.05rem;" onclick="submitBooking()">
+                        <span>Smash & Reserve Court</span>
+                        <span>⚡</span>
+                    </button>
+
+                    <div style="text-align: center; margin-top: 14px; font-size: 0.78rem; color: var(--text-dim);">
+                        🔒 Instant database slot confirmation with rollback protection
+                    </div>
+                </div>
+            </div>
+    </div>
+</div>
+
+<!-- =========================================================
+     TAB 2: PLAYER MATCH HISTORY
+     ========================================================= -->
+<div id="view-history" style="display: none;">
+    <div class="pro-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 14px;">
+            <div>
+                <h3 style="font-size: 1.4rem;">Your Match & Court History</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">All active bookings and historical court reservations</p>
+            </div>
+            <button class="btn-manga btn-manga-primary btn-manga-sm" onclick="switchMainTab('book')">+ New Court Reservation</button>
+        </div>
+        
+        <div id="history-container">
+            <p style="color: var(--text-muted);">Loading your match records...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/booking.js') }}"></script>
+{% endblock %}

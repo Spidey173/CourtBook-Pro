@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{% block title %}CourtBook Pro — Championship Badminton Platform{% endblock %}</title>
+    
+    <!-- Manga Orange Design System -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/design_system.css') }}">
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- Top Championship Navbar -->
+        <header class="navbar-pro">
+            <a href="{{ url_for('main.home') }}" class="brand-logo-wrap">
+                <div class="brand-icon-box">🏸</div>
+                <div>
+                    <div class="brand-name">COURTBOOK PRO</div>
+                    <div class="brand-tag">Championship Arena</div>
+                </div>
+            </a>
+            
+            {% if current_user.is_authenticated %}
+            <div class="nav-links-group">
+                <a href="{{ url_for('main.home') }}" class="nav-link-item {{ 'active' if request.endpoint == 'main.home' else '' }}">
+                    <span>📅</span> Book Court
+                </a>
+                
+                {% if current_user.is_admin %}
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="nav-link-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' else '' }}">
+                    <span>⚙️</span> Admin Console
+                </a>
+                {% endif %}
+                
+                <div style="display: flex; align-items: center; gap: 8px; margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--border-card);">
+                    <span class="badge-pro {{ 'badge-admin-manga' if current_user.is_admin else 'badge-member-manga' }}">
+                        {{ 'Pro Admin' if current_user.is_admin else 'Player' }}
+                    </span>
+                    <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);">{{ current_user.username }}</span>
+                </div>
+                
+                <a href="{{ url_for('auth.logout') }}" class="btn-manga btn-manga-danger btn-manga-sm" style="margin-left: 10px;">
+                    <span>🚪</span> Logout
+                </a>
+            </div>
+            {% else %}
+            <div class="nav-links-group">
+                <a href="{{ url_for('auth.login') }}" class="btn-manga btn-manga-outline btn-manga-sm">Sign In</a>
+                <a href="{{ url_for('auth.signup') }}" class="btn-manga btn-manga-primary btn-manga-sm">Join Arena</a>
+            </div>
+            {% endif %}
+        </header>
+
+        <!-- Flash Notification Banners -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div style="margin-bottom: 24px; display: flex; flex-direction: column; gap: 12px;">
+                    {% for category, message in messages %}
+                        <div class="pro-card" style="padding: 16px 24px; border-left: 4px solid var(--{{ 'accent-red' if category == 'danger' or category == 'error' else 'orange-primary' }});">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <!-- Main Body Workspace -->
+        <main>
+            {% block content %}{% endblock %}
+        </main>
+
+        <!-- Platform Footer -->
+        <footer style="margin-top: 60px; padding: 24px 0; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; color: var(--text-dim); font-size: 0.85rem;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="color: var(--orange-primary); font-weight: 800;">🏸 COURTBOOK PRO</span>
+                <span>•</span>
+                <span>Sports Court Booking Platform</span>
+            </div>
+            <div>
+                © 2026 CourtBook Pro. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- Core Scripts -->
+    <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

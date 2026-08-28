@@ -1,0 +1,20 @@
+# render.yaml - Production Deployment Configuration
+services:
+  - type: web
+    name: sports-court-booking-platform
+    env: python
+    buildCommand: pip install -r requirements.txt && python cli.py init-db && python cli.py seed-data
+    startCommand: gunicorn app:app --workers 3 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.11.4
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_EMAIL
+        value: admin@courtbook.com
+      - key: ADMIN_PASSWORD
+        generateValue: true

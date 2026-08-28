@@ -1,0 +1,15 @@
+Flask>=3.0.0
+Flask-SQLAlchemy>=3.1.1
+Flask-Login>=0.6.3
+Flask-WTF>=1.2.1
+WTForms>=3.1.2
+Flask-Migrate>=4.0.7
+Flask-Limiter>=3.5.0
+pydantic[email]>=2.5.0
+email-validator>=2.1.0
+python-dotenv>=1.0.0
+gunicorn>=21.2.0
+psycopg2-binary>=2.9.9
+pytest>=8.0.0
+pytest-mock>=3.12.0
+alembic>=1.13.0
