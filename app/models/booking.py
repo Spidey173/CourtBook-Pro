@@ -28,17 +28,19 @@ class Booking(db.Model):
     status = db.Column(db.String(20), default=BookingStatus.CONFIRMED.value, nullable=False, index=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # Relationships
-    user = db.relationship('User', back_populates='bookings')
-    court = db.relationship('Court', back_populates='bookings')
-    coach = db.relationship('Coach', back_populates='bookings')
-    equipment_items = db.relationship('BookingEquipment', back_populates='booking', cascade='all, delete-orphan', lazy='joined')
-    slots = db.relationship('BookingSlot', back_populates='booking', cascade='all, delete-orphan', lazy='joined')
+    # Relationships optimized with eager fetching to eliminate N+1 query loops
+    user = db.relationship('User', back_populates='bookings', lazy='joined')
+    court = db.relationship('Court', back_populates='bookings', lazy='joined')
+    coach = db.relationship('Coach', back_populates='bookings', lazy='joined')
+    equipment_items = db.relationship('BookingEquipment', back_populates='booking', cascade='all, delete-orphan', lazy='selectin')
+    slots = db.relationship('BookingSlot', back_populates='booking', cascade='all, delete-orphan', lazy='selectin')
 
     __table_args__ = (
         db.Index('idx_bookings_user_date', 'user_id', 'date'),
         db.Index('idx_bookings_court_date_status', 'court_id', 'date', 'status'),
+        db.Index('idx_bookings_date_slot', 'date', 'time_slot'),
     )
+
 
     def to_dict(self) -> dict:
         """Convert booking to serializable dictionary."""
@@ -108,7 +110,8 @@ class BookingEquipment(db.Model):
 
     # Relationships
     booking = db.relationship('Booking', back_populates='equipment_items')
-    equipment = db.relationship('Equipment', back_populates='booking_items')
+    equipment = db.relationship('Equipment', back_populates='booking_items', lazy='joined')
+
 
     def to_dict(self) -> dict:
         """Convert equipment line item to dictionary."""

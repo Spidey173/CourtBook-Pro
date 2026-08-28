@@ -1,8 +1,7 @@
 /* ==========================================================
    COURTBOOK PRO — MANGA ORANGE SPORTS-TECH DESIGN SYSTEM
    ========================================================== */
-
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* Fonts are preconnected in HTML head for non-blocking parallel delivery */
 
 :root {
     /* Kinetic Manga Orange Palette */

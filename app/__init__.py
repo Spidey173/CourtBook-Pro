@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 from flask import Flask, redirect, url_for, jsonify, request
 from app.config import config_by_name, DevelopmentConfig
-from app.extensions import db, login_manager, csrf, limiter, migrate
+from app.extensions import db, login_manager, csrf, limiter, migrate, compress
 from app.models.user import User
 from app.utils.errors import register_error_handlers
 
@@ -34,6 +34,20 @@ def create_app(config_name: str = None) -> Flask:
     migrate.init_app(app, db)
     csrf.init_app(app)
     limiter.init_app(app)
+    compress.init_app(app)
+
+    @app.after_request
+    def set_performance_headers(response):
+        """Set optimal caching and compression headers based on content type."""
+        # Static files: Cache for 24 hours (allows fast repeated loads while preventing stale asset locks)
+        if request.path.startswith('/static/'):
+            response.headers['Cache-Control'] = 'public, max-age=86400'
+        elif request.path.startswith('/api/'):
+            # Dynamic API data: Do not cache in browser history
+            if 'Cache-Control' not in response.headers:
+                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+        return response
+
 
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login'

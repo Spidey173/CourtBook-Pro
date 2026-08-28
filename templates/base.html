@@ -6,6 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}CourtBook Pro — Championship Badminton Platform{% endblock %}</title>
     
+    <!-- Preconnect & Asynchronous Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+
     <!-- Manga Orange Design System -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/design_system.css') }}">
     {% block styles %}{% endblock %}

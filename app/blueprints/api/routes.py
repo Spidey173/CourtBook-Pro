@@ -29,9 +29,39 @@ from app.services.analytics_service import AnalyticsService
 from app.utils.decorators import admin_required, api_login_required
 from app.utils.responses import success_response, error_response
 
+import time
+
 logger = logging.getLogger(__name__)
 
 api_bp = Blueprint('api', __name__, url_prefix='/api')
+
+# ==========================================
+# In-Memory Micro-Cache Layer (60s TTL)
+# ==========================================
+_CACHE_STORE: Dict[str, Any] = {}
+_CACHE_TTL_SECONDS = 60
+
+
+def get_cached_resource(key: str, loader_fn, ttl: int = _CACHE_TTL_SECONDS):
+    """Retrieves or computes a cached JSON resource with automatic TTL expiry."""
+    now = time.time()
+    if key in _CACHE_STORE:
+        val, expires_at = _CACHE_STORE[key]
+        if now < expires_at:
+            return val
+    computed = loader_fn()
+    _CACHE_STORE[key] = (computed, now + ttl)
+    return computed
+
+
+def invalidate_cache(key_prefix: Optional[str] = None):
+    """Invalidates cache keys matching a prefix, or clears all cached resources."""
+    if key_prefix:
+        keys_to_del = [k for k in _CACHE_STORE if k.startswith(key_prefix)]
+        for k in keys_to_del:
+            _CACHE_STORE.pop(k, None)
+    else:
+        _CACHE_STORE.clear()
 
 
 # ==========================================
@@ -42,35 +72,43 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 @api_bp.route('/v1/courts', methods=['GET'])
 @api_login_required
 def get_courts():
-    """Returns list of all active courts."""
-    courts = Court.query.filter_by(is_active=True).order_by(Court.id).all()
-    # Support both raw list and envelope
-    return jsonify([c.to_dict() for c in courts])
+    """Returns list of all active courts with high-speed micro-caching."""
+    def _load():
+        courts = Court.query.filter_by(is_active=True).order_by(Court.id).all()
+        return [c.to_dict() for c in courts]
+
+    return jsonify(get_cached_resource('courts_active_list', _load))
 
 
 @api_bp.route('/equipment', methods=['GET'])
 @api_bp.route('/v1/equipment', methods=['GET'])
 @api_login_required
 def get_equipment():
-    """Returns list of all active equipment items."""
-    equipment = Equipment.query.filter_by(is_active=True).order_by(Equipment.id).all()
-    return jsonify([{
-        'id': eq.id,
-        'name': eq.name,
-        'price': eq.price,
-        'available': eq.total_available,
-        'total_available': eq.total_available,
-        'is_active': eq.is_active
-    } for eq in equipment])
+    """Returns list of all active equipment items with high-speed micro-caching."""
+    def _load():
+        equipment = Equipment.query.filter_by(is_active=True).order_by(Equipment.id).all()
+        return [{
+            'id': eq.id,
+            'name': eq.name,
+            'price': eq.price,
+            'available': eq.total_available,
+            'total_available': eq.total_available,
+            'is_active': eq.is_active
+        } for eq in equipment]
+
+    return jsonify(get_cached_resource('equipment_active_list', _load))
 
 
 @api_bp.route('/coaches', methods=['GET'])
 @api_bp.route('/v1/coaches', methods=['GET'])
 @api_login_required
 def get_coaches():
-    """Returns list of all active coaches."""
-    coaches = Coach.query.filter_by(is_active=True).order_by(Coach.id).all()
-    return jsonify([c.to_dict() for c in coaches])
+    """Returns list of all active coaches with high-speed micro-caching."""
+    def _load():
+        coaches = Coach.query.filter_by(is_active=True).order_by(Coach.id).all()
+        return [c.to_dict() for c in coaches]
+
+    return jsonify(get_cached_resource('coaches_active_list', _load))
 
 
 @api_bp.route('/timeslots', methods=['GET'])
@@ -86,42 +124,44 @@ def get_timeslots():
 @api_bp.route('/v1/pricing-rules', methods=['GET'])
 @api_login_required
 def get_pricing_rules():
-    """Returns enabled pricing rules formatted for dynamic calculations."""
-    rules = PricingRule.query.filter_by(enabled=True).all()
-    rules_dict = {}
-    for rule in rules:
-        if rule.rule_type == 'peak_hours':
-            rules_dict['peakHours'] = {
-                'enabled': rule.enabled,
-                'multiplier': rule.multiplier,
-                'start': rule.start_time or '18:00',
-                'end': rule.end_time or '21:00',
-                'applyDays': rule.apply_days
-            }
-        elif rule.rule_type == 'weekend':
-            rules_dict['weekend'] = {
-                'enabled': rule.enabled,
-                'multiplier': rule.multiplier
-            }
-        elif rule.rule_type == 'indoor':
-            rules_dict['indoor'] = {
-                'enabled': rule.enabled,
-                'multiplier': rule.multiplier
-            }
-        elif rule.rule_type == 'multiple_hours':
-            rules_dict['multipleHours'] = {
-                'enabled': rule.enabled,
-                'discountPerHour': rule.discount,
-                'discount': rule.discount
-            }
-        elif rule.rule_type == 'bundle':
-            rules_dict['bundle'] = {
-                'enabled': rule.enabled,
-                'discount': rule.discount,
-                'minItems': rule.min_items or 3
-            }
+    """Returns enabled pricing rules formatted for dynamic calculations with caching."""
+    def _load():
+        rules = PricingRule.query.filter_by(enabled=True).all()
+        rules_dict = {}
+        for rule in rules:
+            if rule.rule_type == 'peak_hours':
+                rules_dict['peakHours'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier,
+                    'start': rule.start_time or '18:00',
+                    'end': rule.end_time or '21:00',
+                    'applyDays': rule.apply_days
+                }
+            elif rule.rule_type == 'weekend':
+                rules_dict['weekend'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier
+                }
+            elif rule.rule_type == 'indoor':
+                rules_dict['indoor'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier
+                }
+            elif rule.rule_type == 'multiple_hours':
+                rules_dict['multipleHours'] = {
+                    'enabled': rule.enabled,
+                    'discountPerHour': rule.discount,
+                    'discount': rule.discount
+                }
+            elif rule.rule_type == 'bundle':
+                rules_dict['bundle'] = {
+                    'enabled': rule.enabled,
+                    'discount': rule.discount,
+                    'minItems': rule.min_items or 3
+                }
+        return rules_dict
 
-    return jsonify(rules_dict)
+    return jsonify(get_cached_resource('pricing_rules_active_dict', _load))
 
 
 # ==========================================
@@ -132,7 +172,7 @@ def get_pricing_rules():
 @api_bp.route('/v1/availability', methods=['GET'])
 @api_login_required
 def get_availability():
-    """Detailed availability query for court, equipment, and coaches."""
+    """Detailed availability query for court, equipment, and coaches optimized with single snapshot batching."""
     try:
         query_data = {
             'date': request.args.get('date'),
@@ -146,22 +186,31 @@ def get_availability():
     time_slot = validated.time_slot or '06:00'
     consecutive_slots = AvailabilityService.get_slots_for_duration(time_slot, validated.duration)
 
-    # Active courts
+    # 1. Fetch single date snapshot in one query
+    bookings_snapshot = AvailabilityService.get_active_bookings_snapshot(validated.date)
+
+    # 2. In-memory check courts
     courts = Court.query.filter_by(is_active=True).all()
     available_courts = [
         c.to_dict() for c in courts
-        if AvailabilityService.is_court_available(c.id, validated.date, time_slot, validated.duration)
+        if AvailabilityService.is_court_available(c.id, validated.date, time_slot, validated.duration, bookings_snapshot=bookings_snapshot)
     ]
 
-    # Active coaches
+    # 3. In-memory check coaches
     coaches = Coach.query.filter_by(is_active=True).all()
     available_coaches = [
         c.to_dict() for c in coaches
-        if AvailabilityService.is_coach_available(c.id, validated.date, time_slot, validated.duration)
+        if AvailabilityService.is_coach_available(c.id, validated.date, time_slot, validated.duration, bookings_snapshot=bookings_snapshot)
     ]
 
-    # Equipment inventory
-    equipment_map = AvailabilityService.get_equipment_availability(validated.date, consecutive_slots)
+    # 4. In-memory calculate equipment inventory
+    all_equipment = Equipment.query.filter_by(is_active=True).all()
+    equipment_map = AvailabilityService.get_equipment_availability(
+        validated.date,
+        consecutive_slots,
+        bookings_snapshot=bookings_snapshot,
+        all_equipment=all_equipment
+    )
 
     return success_response(data={
         'available_courts': available_courts,
@@ -169,6 +218,7 @@ def get_availability():
         'equipment_availability': equipment_map,
         'slots_checked': consecutive_slots
     })
+
 
 
 @api_bp.route('/check_availability', methods=['GET'])
@@ -209,15 +259,19 @@ def calculate_price_endpoint():
     # Clean equipment dict
     cleaned_equip = {int(k): int(v) for k, v in validated.equipment.items() if int(v) > 0}
 
+    cached_rules = get_cached_resource('pricing_rules_models_dict', lambda: {r.rule_type: r for r in PricingRule.query.filter_by(enabled=True).all()})
+
     price_result = PricingService.calculate_price(
         court=court,
         booking_date=validated.date,
         time_slot=validated.time_slot,
         duration=validated.duration,
         coach=coach,
-        equipment_requests=cleaned_equip
+        equipment_requests=cleaned_equip,
+        rules=cached_rules
     )
     return success_response(data=price_result)
+
 
 
 # ==========================================
@@ -486,6 +540,7 @@ def manage_admin_courts():
         )
         db.session.add(court)
         db.session.commit()
+        invalidate_cache('courts')
         return success_response(data=court.to_dict(), message="Court added successfully", status_code=201)
 
 
@@ -511,12 +566,14 @@ def manage_single_court(court_id: int):
             court.is_active = bool(data.get('isActive') if 'isActive' in data else data.get('is_active'))
 
         db.session.commit()
+        invalidate_cache('courts')
         return success_response(data=court.to_dict(), message="Court updated successfully")
 
     elif request.method == 'DELETE':
         # Soft delete
         court.is_active = False
         db.session.commit()
+        invalidate_cache('courts')
         return success_response(message="Court deactivated successfully")
 
 
@@ -556,6 +613,7 @@ def manage_admin_equipment():
         )
         db.session.add(eq)
         db.session.commit()
+        invalidate_cache('equipment')
         return success_response(data=eq.to_dict(), message="Equipment added successfully", status_code=201)
 
 
@@ -581,11 +639,13 @@ def manage_single_equipment(equipment_id: int):
             eq.is_active = bool(data.get('isActive') if 'isActive' in data else data.get('is_active'))
 
         db.session.commit()
+        invalidate_cache('equipment')
         return success_response(data=eq.to_dict(), message="Equipment updated successfully")
 
     elif request.method == 'DELETE':
         eq.is_active = False
         db.session.commit()
+        invalidate_cache('equipment')
         return success_response(message="Equipment deactivated successfully")
 
 
@@ -625,6 +685,7 @@ def manage_admin_coaches():
         )
         db.session.add(coach)
         db.session.commit()
+        invalidate_cache('coaches')
         return success_response(data=coach.to_dict(), message="Coach registered successfully", status_code=201)
 
 
@@ -650,11 +711,13 @@ def manage_single_coach(coach_id: int):
             coach.is_active = bool(data.get('isActive') if 'isActive' in data else data.get('is_active'))
 
         db.session.commit()
+        invalidate_cache('coaches')
         return success_response(data=coach.to_dict(), message="Coach updated successfully")
 
     elif request.method == 'DELETE':
         coach.is_active = False
         db.session.commit()
+        invalidate_cache('coaches')
         return success_response(message="Coach deactivated successfully")
 
 
@@ -699,7 +762,9 @@ def manage_admin_pricing_rules():
                 rule.apply_days = item.get('applyDays') or item.get('apply_days')
 
         db.session.commit()
+        invalidate_cache('pricing_rules')
         return success_response(message="Pricing rules updated successfully")
+
 
 
 @api_bp.route('/admin/reports/revenue', methods=['GET'])

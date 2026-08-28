@@ -28,6 +28,31 @@ class BaseConfig:
     ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@courtbook.com')
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'Admin@123456')
 
+    # SQLAlchemy Engine & Production Connection Pooling
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_size': int(os.environ.get('DB_POOL_SIZE', 5)),
+        'max_overflow': int(os.environ.get('DB_MAX_OVERFLOW', 10)),
+        'pool_timeout': 30,
+        'pool_recycle': 300,  # Recycle connections every 5 min to prevent stale cloud DB drops
+        'pool_pre_ping': True, # Test connection before issuing queries
+    }
+
+    # Static asset caching (24 hours)
+    SEND_FILE_MAX_AGE_DEFAULT = 86400
+
+    # Flask-Compress settings
+    COMPRESS_MIMETYPES = [
+        'text/html',
+        'text/css',
+        'text/xml',
+        'application/json',
+        'application/javascript',
+        'text/javascript'
+    ]
+    COMPRESS_LEVEL = 6
+    COMPRESS_MIN_SIZE = 500
+
+
 
 DEFAULT_DB_URL = "postgresql://neondb_owner:npg_Bl8N7dLaqmgx@ep-twilight-water-axohm68w-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 

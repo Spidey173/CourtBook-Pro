@@ -1,7 +1,6 @@
 """Resource Availability Query Engine."""
 from datetime import date
 from typing import List, Dict, Any, Optional
-from sqlalchemy import func
 from app.extensions import db
 from app.models.court import Court
 from app.models.coach import Coach
@@ -11,7 +10,7 @@ from app.schemas.booking_schema import VALID_TIME_SLOTS
 
 
 class AvailabilityService:
-    """Service for querying and calculating availability across courts, coaches, and equipment."""
+    """Service for querying and calculating availability across courts, coaches, and equipment with batch single-query performance."""
 
     @staticmethod
     def get_slots_for_duration(start_slot: str, duration: int) -> List[str]:
@@ -24,114 +23,109 @@ class AvailabilityService:
         return VALID_TIME_SLOTS[start_idx : start_idx + duration]
 
     @classmethod
-    def is_court_available(cls, court_id: int, booking_date: date, start_slot: str, duration: int = 1, exclude_booking_id: Optional[int] = None) -> bool:
-        """Check if a specific court has no conflicting bookings for the requested duration."""
-        requested_slots = cls.get_slots_for_duration(start_slot, duration)
-        if len(requested_slots) < duration:
-            return False
-
-        # 1. Query booking_slots table for physical slot locks
-        slot_query = db.session.query(BookingSlot).join(Booking).filter(
-            BookingSlot.court_id == court_id,
-            BookingSlot.date == booking_date,
-            BookingSlot.time_slot.in_(requested_slots),
-            Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
-        )
-        if exclude_booking_id:
-            slot_query = slot_query.filter(BookingSlot.booking_id != exclude_booking_id)
-
-        if slot_query.first() is not None:
-            return False
-
-        # 2. Fallback check on bookings directly for legacy/non-slotted records
-        existing_bookings = Booking.query.filter(
-            Booking.court_id == court_id,
+    def get_active_bookings_snapshot(cls, booking_date: date, exclude_booking_id: Optional[int] = None) -> List[Booking]:
+        """Fetches all active bookings for a given date in a single optimized query with relationships pre-loaded."""
+        query = Booking.query.filter(
             Booking.date == booking_date,
             Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
         )
         if exclude_booking_id:
-            existing_bookings = existing_bookings.filter(Booking.id != exclude_booking_id)
+            query = query.filter(Booking.id != exclude_booking_id)
+        return query.all()
 
-        for b in existing_bookings.all():
-            b_slots = cls.get_slots_for_duration(b.time_slot, b.duration or 1)
-            if set(requested_slots).intersection(set(b_slots)):
-                return False
+    @classmethod
+    def is_court_available(
+        cls,
+        court_id: int,
+        booking_date: date,
+        start_slot: str,
+        duration: int = 1,
+        exclude_booking_id: Optional[int] = None,
+        bookings_snapshot: Optional[List[Booking]] = None
+    ) -> bool:
+        """Check if a specific court has no conflicting bookings for the requested duration."""
+        requested_slots = set(cls.get_slots_for_duration(start_slot, duration))
+        if len(requested_slots) < duration:
+            return False
+
+        # Use pre-fetched snapshot if available, otherwise fetch in one query
+        bookings = bookings_snapshot if bookings_snapshot is not None else cls.get_active_bookings_snapshot(booking_date, exclude_booking_id)
+
+        for b in bookings:
+            if b.court_id == court_id:
+                b_slots = set(cls.get_slots_for_duration(b.time_slot, b.duration or 1))
+                if requested_slots.intersection(b_slots):
+                    return False
 
         return True
 
     @classmethod
-    def is_coach_available(cls, coach_id: Optional[int], booking_date: date, start_slot: str, duration: int = 1, exclude_booking_id: Optional[int] = None) -> bool:
+    def is_coach_available(
+        cls,
+        coach_id: Optional[int],
+        booking_date: date,
+        start_slot: str,
+        duration: int = 1,
+        exclude_booking_id: Optional[int] = None,
+        bookings_snapshot: Optional[List[Booking]] = None
+    ) -> bool:
         """Check if coach has no overlapping reservations."""
         if coach_id is None:
             return True
 
-        requested_slots = cls.get_slots_for_duration(start_slot, duration)
+        requested_slots = set(cls.get_slots_for_duration(start_slot, duration))
         if len(requested_slots) < duration:
             return False
 
-        # Check booking_slots
-        slot_query = db.session.query(BookingSlot).join(Booking).filter(
-            BookingSlot.coach_id == coach_id,
-            BookingSlot.date == booking_date,
-            BookingSlot.time_slot.in_(requested_slots),
-            Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
-        )
-        if exclude_booking_id:
-            slot_query = slot_query.filter(BookingSlot.booking_id != exclude_booking_id)
+        bookings = bookings_snapshot if bookings_snapshot is not None else cls.get_active_bookings_snapshot(booking_date, exclude_booking_id)
 
-        if slot_query.first() is not None:
-            return False
-
-        # Fallback check on bookings
-        existing_bookings = Booking.query.filter(
-            Booking.coach_id == coach_id,
-            Booking.date == booking_date,
-            Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
-        )
-        if exclude_booking_id:
-            existing_bookings = existing_bookings.filter(Booking.id != exclude_booking_id)
-
-        for b in existing_bookings.all():
-            b_slots = cls.get_slots_for_duration(b.time_slot, b.duration or 1)
-            if set(requested_slots).intersection(set(b_slots)):
-                return False
+        for b in bookings:
+            if b.coach_id == coach_id:
+                b_slots = set(cls.get_slots_for_duration(b.time_slot, b.duration or 1))
+                if requested_slots.intersection(b_slots):
+                    return False
 
         return True
 
     @classmethod
-    def get_equipment_availability(cls, booking_date: date, requested_slots: List[str]) -> Dict[int, int]:
+    def get_equipment_availability(
+        cls,
+        booking_date: date,
+        requested_slots: List[str],
+        bookings_snapshot: Optional[List[Booking]] = None,
+        all_equipment: Optional[List[Equipment]] = None
+    ) -> Dict[int, int]:
         """
         Calculates remaining available quantity for each equipment item across all requested slots.
+        Runs entirely in-memory using pre-fetched or single-query snapshots.
         """
-        all_equipment = Equipment.query.filter_by(is_active=True).all()
-        availability_map: Dict[int, int] = {}
+        if all_equipment is None:
+            all_equipment = Equipment.query.filter_by(is_active=True).all()
 
         if not requested_slots:
             return {eq.id: eq.total_available for eq in all_equipment}
 
-        # Find all active bookings on this date
-        active_bookings = Booking.query.filter(
-            Booking.date == booking_date,
-            Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
-        ).all()
+        bookings = bookings_snapshot if bookings_snapshot is not None else cls.get_active_bookings_snapshot(booking_date)
 
+        # Build slot -> equipment_id -> booked_count lookup in a single O(N) pass
+        slot_eq_usage: Dict[str, Dict[int, int]] = {s: {} for s in requested_slots}
+        requested_set = set(requested_slots)
+
+        for b in bookings:
+            b_slots = set(cls.get_slots_for_duration(b.time_slot, b.duration or 1))
+            overlapping = requested_set.intersection(b_slots)
+            if overlapping:
+                for be in b.equipment_items:
+                    eq_id = be.equipment_id
+                    qty = be.quantity
+                    for slot in overlapping:
+                        slot_eq_usage[slot][eq_id] = slot_eq_usage[slot].get(eq_id, 0) + qty
+
+        # Compute remaining available quantity per item
+        availability_map: Dict[int, int] = {}
         for eq in all_equipment:
-            min_available_across_slots = eq.total_available
-
-            for slot in requested_slots:
-                booked_for_slot = 0
-                for booking in active_bookings:
-                    b_slots = cls.get_slots_for_duration(booking.time_slot, booking.duration or 1)
-                    if slot in b_slots:
-                        for be in booking.equipment_items:
-                            if be.equipment_id == eq.id:
-                                booked_for_slot += be.quantity
-
-                available_in_slot = max(0, eq.total_available - booked_for_slot)
-                if available_in_slot < min_available_across_slots:
-                    min_available_across_slots = available_in_slot
-
-            availability_map[eq.id] = min_available_across_slots
+            max_used_in_any_slot = max([slot_eq_usage[s].get(eq.id, 0) for s in requested_slots], default=0)
+            availability_map[eq.id] = max(0, eq.total_available - max_used_in_any_slot)
 
         return availability_map
 
@@ -139,16 +133,13 @@ class AvailabilityService:
     def get_daily_booked_slots(cls, booking_date: date) -> Dict[str, Any]:
         """
         Returns mapping of court_id -> [list of booked time slots] and booked coach IDs.
-        Used by the frontend to render slot badges in real time.
+        Executes in ONE single SQL query instead of per-court/coach iterations.
         """
         courts = Court.query.filter_by(is_active=True).all()
         booked_court_slots: Dict[int, List[str]] = {c.id: [] for c in courts}
         booked_coach_slots: Dict[int, List[str]] = {}
 
-        active_bookings = Booking.query.filter(
-            Booking.date == booking_date,
-            Booking.status.in_([BookingStatus.PENDING.value, BookingStatus.CONFIRMED.value])
-        ).all()
+        active_bookings = cls.get_active_bookings_snapshot(booking_date)
 
         for b in active_bookings:
             b_slots = cls.get_slots_for_duration(b.time_slot, b.duration or 1)
@@ -164,7 +155,6 @@ class AvailabilityService:
                     if s not in booked_coach_slots[b.coach_id]:
                         booked_coach_slots[b.coach_id].append(s)
 
-        # Also get general equipment availability for the day (or per hour)
         all_equipment = Equipment.query.filter_by(is_active=True).all()
         eq_availability = {eq.id: eq.total_available for eq in all_equipment}
 
@@ -174,3 +164,4 @@ class AvailabilityService:
             'booked_coaches': list(booked_coach_slots.keys()),
             'equipment_availability': eq_availability
         }
+

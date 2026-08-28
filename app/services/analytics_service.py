@@ -1,7 +1,7 @@
 """Cross-Database Analytics & Reporting Service."""
 from datetime import date, timedelta
 from typing import Dict, Any, List, Optional
-from sqlalchemy import func, extract
+from sqlalchemy import func, extract, case
 from app.extensions import db
 from app.models.user import User
 from app.models.court import Court
@@ -29,22 +29,23 @@ class AnalyticsService:
 
     @classmethod
     def get_dashboard_summary(cls) -> Dict[str, Any]:
-        """Calculates high-level KPI dashboard statistics."""
+        """Calculates high-level KPI dashboard statistics in a single consolidated SQL aggregation query."""
         today = date.today()
-        total_users = User.query.count()
-        total_bookings = Booking.query.filter(Booking.status != BookingStatus.CANCELLED.value).count()
-        active_bookings = Booking.query.filter(
-            Booking.date >= today,
-            Booking.status != BookingStatus.CANCELLED.value
-        ).count()
-        today_bookings = Booking.query.filter(
-            Booking.date == today,
-            Booking.status != BookingStatus.CANCELLED.value
-        ).count()
 
-        total_revenue = db.session.query(
-            db.func.sum(Booking.total_price)
-        ).filter(Booking.status != BookingStatus.CANCELLED.value).scalar() or 0
+        # 1. Consolidated single-query metrics for total, active, today bookings and total revenue
+        stats_row = db.session.query(
+            func.count(Booking.id).label('total_bookings'),
+            func.count(case((Booking.date >= today, Booking.id))).label('active_bookings'),
+            func.count(case((Booking.date == today, Booking.id))).label('today_bookings'),
+            func.coalesce(func.sum(Booking.total_price), 0).label('total_revenue')
+        ).filter(Booking.status != BookingStatus.CANCELLED.value).first()
+
+        total_bookings = int(stats_row[0] or 0) if stats_row else 0
+        active_bookings = int(stats_row[1] or 0) if stats_row else 0
+        today_bookings = int(stats_row[2] or 0) if stats_row else 0
+        total_revenue = int(stats_row[3] or 0) if stats_row else 0
+
+        total_users = User.query.count()
 
         # Monthly revenue (last 6 months)
         month_expr = cls._get_month_expression()

@@ -42,7 +42,8 @@ class PricingService:
         time_slot: str,
         duration: int = 1,
         coach: Optional[Coach] = None,
-        equipment_requests: Optional[Dict[int, int]] = None
+        equipment_requests: Optional[Dict[int, int]] = None,
+        rules: Optional[Dict[str, PricingRule]] = None
     ) -> Dict[str, Any]:
         """
         Calculates the definitive total price and breakdown for a reservation.
@@ -51,8 +52,10 @@ class PricingService:
         breakdown: List[Dict[str, Any]] = []
         applied_rules: List[str] = []
 
-        # 1. Fetch active pricing rules from database
-        rules = {r.rule_type: r for r in PricingRule.query.filter_by(enabled=True).all()}
+        # 1. Fetch active pricing rules if not supplied
+        if rules is None:
+            rules = {r.rule_type: r for r in PricingRule.query.filter_by(enabled=True).all()}
+
 
         # 2. Base Court Price & Multipliers
         court_base = court.base_price

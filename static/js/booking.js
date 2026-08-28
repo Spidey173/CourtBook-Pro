@@ -246,8 +246,17 @@ function changeEquipmentQty(equipId, delta) {
     const qtyElem = document.getElementById(`eq-qty-${equipId}`);
     if (qtyElem) qtyElem.textContent = nextVal;
 
-    updateSummary();
+    debouncedUpdateSummary();
 }
+
+let updateSummaryDebounceTimer = null;
+function debouncedUpdateSummary(delay = 150) {
+    if (updateSummaryDebounceTimer) clearTimeout(updateSummaryDebounceTimer);
+    updateSummaryDebounceTimer = setTimeout(() => {
+        updateSummary();
+    }, delay);
+}
+
 
 function updateEquipmentStockLabels() {
     bookingState.equipment.forEach(item => {
