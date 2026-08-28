@@ -149,7 +149,11 @@
                 if (res.success) {
                     ApiClient.showToast('Demo login successful! Entering arena...', 'success');
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('main.home') }}";
+                        if (res.data && (res.data.is_admin || res.data.isAdmin)) {
+                            window.location.href = "{{ url_for('admin.admin_dashboard') }}";
+                        } else {
+                            window.location.href = "{{ url_for('main.home') }}";
+                        }
                     }, 500);
                 } else {
                     alertText.textContent = res.message || 'Demo login failed.';
@@ -194,7 +198,11 @@
                     btn.innerHTML = '<span>Match Approved! Entering Arena... 🏆</span>';
                     ApiClient.showToast('Welcome back! Entering arena...', 'success');
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('main.home') }}";
+                        if (res.data && (res.data.is_admin || res.data.isAdmin)) {
+                            window.location.href = "{{ url_for('admin.admin_dashboard') }}";
+                        } else {
+                            window.location.href = "{{ url_for('main.home') }}";
+                        }
                     }, 500);
                 } else {
                     alertText.textContent = res.message || 'Invalid credentials.';
