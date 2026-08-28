@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Join CourtBook Pro 🏸 — Create Account</title>
+    <!-- Preconnect & Asynchronous Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
 </head>
 <body class="auth-page">
@@ -203,8 +207,8 @@
                     btn.innerHTML = '<span>Player Account Ready! Entering Arena... 🚀</span>';
                     ApiClient.showToast('Account created! Welcome to CourtBook Pro!', 'success');
                     setTimeout(() => {
-                        window.location.href = "{{ url_for('main.home') }}";
-                    }, 500);
+                        window.location.replace("{{ url_for('main.home') }}");
+                    }, 400);
                 } else {
                     alertText.textContent = res.message || 'Registration failed.';
                     alertBox.style.display = 'flex';
@@ -219,6 +223,14 @@
                 }
             }
         });
+
+        // If restored from browser Back-Forward cache (bfcache), force reload
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
     </script>
+
 </body>
 </html>

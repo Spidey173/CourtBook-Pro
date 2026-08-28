@@ -233,9 +233,11 @@ body.auth-page {
     padding: 48px 44px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     background: var(--auth-card-bg);
+    min-height: 580px;
 }
+
 
 .auth-tabs {
     display: flex;
@@ -375,6 +377,8 @@ body.auth-page {
 /* Submit Button */
 .btn-smash {
     width: 100%;
+    min-height: 56px;
+    box-sizing: border-box;
     padding: 16px;
     border-radius: 14px;
     background: var(--manga-gradient);
@@ -394,6 +398,7 @@ body.auth-page {
     gap: 10px;
     margin-top: 10px;
 }
+
 
 .btn-smash:hover {
     transform: translateY(-2px);

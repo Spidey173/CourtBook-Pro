@@ -25,6 +25,8 @@ def login():
     if current_user.is_authenticated:
         if request.is_json or request.headers.get('Accept') == 'application/json':
             return success_response(data=current_user.to_dict(), message="Already authenticated")
+        if current_user.is_admin:
+            return redirect(url_for('admin.admin_dashboard'))
         return redirect(url_for('main.home'))
 
     if request.method == 'POST':
@@ -66,7 +68,10 @@ def signup():
     if current_user.is_authenticated:
         if request.is_json or request.headers.get('Accept') == 'application/json':
             return success_response(data=current_user.to_dict(), message="Already authenticated")
+        if current_user.is_admin:
+            return redirect(url_for('admin.admin_dashboard'))
         return redirect(url_for('main.home'))
+
 
     if request.method == 'POST':
         data = request.get_json(silent=True) or request.form.to_dict()

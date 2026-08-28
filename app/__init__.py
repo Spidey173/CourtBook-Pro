@@ -42,11 +42,12 @@ def create_app(config_name: str = None) -> Flask:
         # Static files: Cache for 24 hours (allows fast repeated loads while preventing stale asset locks)
         if request.path.startswith('/static/'):
             response.headers['Cache-Control'] = 'public, max-age=86400'
-        elif request.path.startswith('/api/'):
-            # Dynamic API data: Do not cache in browser history
-            if 'Cache-Control' not in response.headers:
-                response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, private'
+        elif request.path.startswith('/api/') or request.path.startswith('/auth') or request.path in ('/login', '/signup'):
+            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0, private'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
         return response
+
 
 
     login_manager.init_app(app)

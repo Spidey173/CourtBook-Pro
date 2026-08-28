@@ -139,6 +139,13 @@
     <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth_particles.js') }}"></script>
     <script>
+        // If restored from browser Back-Forward cache (bfcache), force reload to trigger server redirect
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        });
+
         async function quickLogin(role) {
             const alertBox = document.getElementById('authAlert');
             const alertText = document.getElementById('authAlertText');
@@ -153,12 +160,11 @@
                 if (res.success) {
                     ApiClient.showToast('Demo login successful! Entering arena...', 'success');
                     setTimeout(() => {
-                        if (res.data && (res.data.is_admin || res.data.isAdmin)) {
-                            window.location.href = "{{ url_for('admin.admin_dashboard') }}";
-                        } else {
-                            window.location.href = "{{ url_for('main.home') }}";
-                        }
-                    }, 500);
+                        const targetUrl = (res.data && (res.data.is_admin || res.data.isAdmin))
+                            ? "{{ url_for('admin.admin_dashboard') }}"
+                            : "{{ url_for('main.home') }}";
+                        window.location.replace(targetUrl);
+                    }, 400);
                 } else {
                     alertText.textContent = res.message || 'Demo login failed.';
                     alertBox.style.display = 'flex';
@@ -202,12 +208,11 @@
                     btn.innerHTML = '<span>Match Approved! Entering Arena... 🏆</span>';
                     ApiClient.showToast('Welcome back! Entering arena...', 'success');
                     setTimeout(() => {
-                        if (res.data && (res.data.is_admin || res.data.isAdmin)) {
-                            window.location.href = "{{ url_for('admin.admin_dashboard') }}";
-                        } else {
-                            window.location.href = "{{ url_for('main.home') }}";
-                        }
-                    }, 500);
+                        const targetUrl = (res.data && (res.data.is_admin || res.data.isAdmin))
+                            ? "{{ url_for('admin.admin_dashboard') }}"
+                            : "{{ url_for('main.home') }}";
+                        window.location.replace(targetUrl);
+                    }, 400);
                 } else {
                     alertText.textContent = res.message || 'Invalid credentials.';
                     alertBox.style.display = 'flex';
