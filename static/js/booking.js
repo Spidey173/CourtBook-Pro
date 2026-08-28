@@ -2,8 +2,15 @@
  * Championship Booking Engine — Manga Orange Edition
  */
 
+function getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
 const bookingState = {
-    date: new Date().toISOString().split('T')[0],
+    date: getLocalDateString(new Date()),
     duration: 1,
     selectedCourt: null,
     selectedSlot: null,
@@ -29,10 +36,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 function initDatePicker() {
     const datePicker = document.getElementById('bookingDate');
     if (datePicker) {
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString(new Date());
         datePicker.value = todayStr;
         datePicker.min = todayStr;
         bookingState.date = todayStr;
+        updateDateBadge();
+    }
+}
+
+function updateDateBadge() {
+    const badge = document.getElementById('date-preview-badge');
+    if (!badge || !bookingState.date) return;
+
+    const todayStr = getLocalDateString(new Date());
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = getLocalDateString(tomorrow);
+
+    if (bookingState.date === todayStr) {
+        badge.textContent = "Today's Schedule";
+        badge.className = 'badge-pro badge-status-open';
+    } else if (bookingState.date === tomorrowStr) {
+        badge.textContent = "Tomorrow's Schedule";
+        badge.className = 'badge-pro badge-admin-manga';
+    } else {
+        const d = new Date(bookingState.date + 'T00:00:00');
+        const formatted = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        badge.textContent = formatted + ' Schedule';
+        badge.className = 'badge-pro badge-member-manga';
     }
 }
 
@@ -45,10 +76,10 @@ async function loadInitialResources() {
             ApiClient.get('/api/timeslots')
         ]);
 
-        bookingState.courts = courts;
-        bookingState.coaches = coaches;
-        bookingState.equipment = equipment;
-        bookingState.timeSlots = slots;
+        bookingState.courts = Array.isArray(courts) ? courts : (courts && courts.data ? courts.data : []);
+        bookingState.coaches = Array.isArray(coaches) ? coaches : (coaches && coaches.data ? coaches.data : []);
+        bookingState.equipment = Array.isArray(equipment) ? equipment : (equipment && equipment.data ? equipment.data : []);
+        bookingState.timeSlots = Array.isArray(slots) ? slots : (slots && slots.data ? slots.data : []);
     } catch (err) {
         ApiClient.showToast('Failed to load court resources. Please refresh.', 'error');
     }
@@ -71,9 +102,13 @@ async function refreshAvailability() {
 }
 
 function onDateOrDurationChange() {
-    bookingState.date = document.getElementById('bookingDate').value;
-    bookingState.duration = parseInt(document.getElementById('bookingDuration').value, 10);
+    const dateInput = document.getElementById('bookingDate');
+    const durationInput = document.getElementById('bookingDuration');
+    if (dateInput) bookingState.date = dateInput.value;
+    if (durationInput) bookingState.duration = parseInt(durationInput.value, 10);
     
+    updateDateBadge();
+
     // Reset slot selection on date/duration change
     bookingState.selectedSlot = null;
     refreshAvailability().then(() => {
@@ -87,7 +122,7 @@ function renderCourts() {
 
     container.innerHTML = bookingState.courts.map(court => {
         const isSelected = bookingState.selectedCourt && bookingState.selectedCourt.id === court.id;
-        const courtBookedSlots = bookingState.bookedCourtSlots[court.id] || [];
+        const courtBookedSlots = bookingState.bookedCourtSlots[court.id] || bookingState.bookedCourtSlots[String(court.id)] || [];
         const isFullyBooked = bookingState.timeSlots.length > 0 && courtBookedSlots.length >= bookingState.timeSlots.length;
 
         return `
@@ -129,13 +164,32 @@ function renderTimeSlots() {
     const container = document.getElementById('slots-container');
     if (!container || !bookingState.selectedCourt) return;
 
-    const bookedSlots = bookingState.bookedCourtSlots[bookingState.selectedCourt.id] || [];
+    const courtId = bookingState.selectedCourt.id;
+    const bookedSlots = bookingState.bookedCourtSlots[courtId] || bookingState.bookedCourtSlots[String(courtId)] || [];
+
+    const now = new Date();
+    const todayStr = getLocalDateString(now);
+    const isToday = (bookingState.date === todayStr);
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
 
     const slotChips = bookingState.timeSlots.map((slot, idx) => {
         let hasConflict = false;
+        let isPast = false;
+
+        // Check if slot has already elapsed today
+        if (isToday) {
+            const [sHour, sMin] = slot.split(':').map(Number);
+            if (sHour < currentHour || (sHour === currentHour && currentMin > 0)) {
+                isPast = true;
+                hasConflict = true;
+            }
+        }
+
+        // Check duration bounds and booked overlaps
         if (idx + bookingState.duration > bookingState.timeSlots.length) {
             hasConflict = true;
-        } else {
+        } else if (!isPast) {
             for (let i = 0; i < bookingState.duration; i++) {
                 const subSlot = bookingState.timeSlots[idx + i];
                 if (bookedSlots.includes(subSlot)) {
@@ -146,13 +200,15 @@ function renderTimeSlots() {
         }
 
         const isSelected = bookingState.selectedSlot === slot;
+        const statusLabel = isPast ? 'Past' : (hasConflict ? 'Booked' : '');
 
         return `
             <button type="button" 
                     class="slot-chip-pro ${hasConflict ? 'booked' : ''} ${isSelected ? 'selected' : ''}"
                     ${hasConflict ? 'disabled' : ''}
                     onclick="selectTimeSlot('${slot}')">
-                ${slot}
+                <span>${slot}</span>
+                ${statusLabel ? `<span style="font-size: 0.65rem; opacity: 0.7; display: block; margin-top: 2px;">${statusLabel}</span>` : ''}
             </button>
         `;
     }).join('');
@@ -169,6 +225,7 @@ function selectTimeSlot(slot) {
     renderTimeSlots();
     updateSummary();
 }
+
 
 function renderCoaches() {
     const container = document.getElementById('coaches-grid');
@@ -392,8 +449,10 @@ async function loadBookingHistory() {
     container.innerHTML = '<p style="color: var(--text-muted);">Loading your match records...</p>';
 
     try {
-        const bookings = await ApiClient.get('/api/bookings');
+        const raw = await ApiClient.get('/api/bookings');
+        const bookings = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
         if (!bookings || bookings.length === 0) {
+
             container.innerHTML = `
                 <div style="text-align: center; padding: 48px 0; color: var(--text-muted);">
                     <div style="font-size: 3rem; margin-bottom: 12px; opacity: 0.7;">🏸</div>
