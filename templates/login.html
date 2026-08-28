@@ -135,6 +135,9 @@
         </div>
     </div>
 
+    <!-- Fixed Toast Notifications Container -->
+    <div id="toast-container"></div>
+
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/api_client.js') }}"></script>
     <script src="{{ url_for('static', filename='js/auth_particles.js') }}"></script>
@@ -154,6 +157,11 @@
             
             const demoButtons = document.querySelectorAll('.btn-demo');
             demoButtons.forEach(btn => btn.disabled = true);
+            const clickedBtn = document.querySelector(`.btn-demo-${role}`);
+            const originalHtml = clickedBtn ? clickedBtn.innerHTML : '';
+            if (clickedBtn) {
+                clickedBtn.innerHTML = `<span>⚡ Connecting...</span>`;
+            }
             
             try {
                 const res = await ApiClient.post("{{ url_for('auth.demo_login') }}", { role });
@@ -164,18 +172,21 @@
                             ? "{{ url_for('admin.admin_dashboard') }}"
                             : "{{ url_for('main.home') }}";
                         window.location.replace(targetUrl);
-                    }, 400);
+                    }, 350);
                 } else {
+                    if (clickedBtn) clickedBtn.innerHTML = originalHtml;
                     alertText.textContent = res.message || 'Demo login failed.';
                     alertBox.style.display = 'flex';
                     demoButtons.forEach(btn => btn.disabled = false);
                 }
             } catch (err) {
+                if (clickedBtn) clickedBtn.innerHTML = originalHtml;
                 alertText.textContent = err.message || 'Demo authentication error. Please try again.';
                 alertBox.style.display = 'flex';
                 demoButtons.forEach(btn => btn.disabled = false);
             }
         }
+
 
         function togglePasswordVisibility(fieldId, btn) {
             const input = document.getElementById(fieldId);

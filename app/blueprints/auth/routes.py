@@ -136,12 +136,12 @@ def demo_login():
     """Endpoint for instant demo login (user or admin)."""
     from flask import current_app
     data = request.get_json(silent=True) or {}
-    role = data.get('role', 'user') # 'user' or 'admin'
-    
+    role = data.get('role', 'user')  # 'user' or 'admin'
+
     if role == 'admin':
-        username = current_app.config.get('ADMIN_USERNAME', 'admin')
-        user = User.query.filter_by(username=username, is_admin=True).first()
+        user = User.query.filter_by(is_admin=True).first()
         if not user:
+            username = current_app.config.get('ADMIN_USERNAME', 'admin')
             admin_email = current_app.config.get('ADMIN_EMAIL', 'admin@courtbook.com')
             admin_pass = current_app.config.get('ADMIN_PASSWORD', 'Admin@123456')
             user = User(username=username, email=admin_email, is_admin=True, is_active=True)
@@ -149,13 +149,19 @@ def demo_login():
             db.session.add(user)
             db.session.commit()
     else:
-        user = User.query.filter_by(username='demo_user', is_admin=False).first()
+        user = User.query.filter_by(username='demo_user').first()
+        if not user:
+            user = User.query.filter_by(is_admin=False).first()
         if not user:
             user = User(username='demo_user', email='demo@courtbook.com', is_admin=False, is_active=True)
             user.set_password('Demo@123456')
             db.session.add(user)
             db.session.commit()
-            
+
+    if not user.is_active:
+        user.is_active = True
+        db.session.commit()
+
     login_user(user, remember=True)
     return success_response(
         data={
@@ -167,4 +173,5 @@ def demo_login():
         },
         message="Demo login successful"
     )
+
 
