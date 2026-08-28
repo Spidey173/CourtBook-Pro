@@ -283,6 +283,8 @@ def calculate_price_endpoint():
 @api_login_required
 def get_user_bookings():
     """Returns booking history for the current authenticated user."""
+    BookingService.auto_complete_past_bookings()
+
     status_filter = request.args.get('status')
     query = Booking.query.filter_by(user_id=current_user.id)
     if status_filter:
@@ -291,6 +293,7 @@ def get_user_bookings():
     bookings = query.order_by(Booking.date.desc(), Booking.time_slot.desc()).all()
     booking_dicts = [b.to_dict() for b in bookings]
     return jsonify(booking_dicts)
+
 
 
 @api_bp.route('/bookings', methods=['POST'])
@@ -465,6 +468,8 @@ def manage_admin_user(user_id: int):
 @admin_required
 def get_admin_bookings():
     """Paginated list of all center bookings with filters."""
+    BookingService.auto_complete_past_bookings()
+
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
     status_filter = request.args.get('status', 'all')
@@ -474,9 +479,13 @@ def get_admin_bookings():
     query = Booking.query.join(User).join(Court)
 
     if status_filter == 'upcoming':
-        query = query.filter(Booking.date >= date.today(), Booking.status != BookingStatus.CANCELLED.value)
+        query = query.filter(Booking.date >= date.today(), Booking.status == BookingStatus.CONFIRMED.value)
     elif status_filter == 'past':
-        query = query.filter(Booking.date < date.today(), Booking.status != BookingStatus.CANCELLED.value)
+        query = query.filter(Booking.date < date.today())
+    elif status_filter == 'confirmed':
+        query = query.filter(Booking.status == BookingStatus.CONFIRMED.value)
+    elif status_filter == 'completed':
+        query = query.filter(Booking.status == BookingStatus.COMPLETED.value)
     elif status_filter == 'cancelled':
         query = query.filter(Booking.status == BookingStatus.CANCELLED.value)
 
@@ -501,6 +510,22 @@ def get_admin_bookings():
         'per_page': bookings_page.per_page,
         'pages': bookings_page.pages
     })
+
+
+@api_bp.route('/admin/bookings/<int:booking_id>/complete', methods=['POST'])
+@api_bp.route('/v1/admin/bookings/<int:booking_id>/complete', methods=['POST'])
+@admin_required
+def complete_admin_booking(booking_id: int):
+    """Mark a match booking as completed."""
+    try:
+        booking = BookingService.complete_booking(booking_id=booking_id, is_admin=True)
+        return success_response(data=booking.to_dict(), message=f"Match Booking #{booking_id} marked as Completed 🏆")
+    except (BookingNotFoundError, ValueError) as e:
+        return error_response(str(e), status_code=400)
+    except Exception as e:
+        logger.exception("Failed to complete booking: %s", e)
+        return error_response("Internal error completing booking", status_code=500)
+
 
 
 @api_bp.route('/admin/courts', methods=['GET', 'POST'])

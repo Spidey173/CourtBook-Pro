@@ -492,8 +492,8 @@ async function loadBookingHistory() {
                                 </td>
                                 <td style="font-weight: 900; color: var(--text-white); font-family: var(--font-heading); font-size: 1.05rem;">₹${b.total_price}</td>
                                 <td>
-                                    <span class="badge-pro ${b.status === 'confirmed' ? 'badge-status-open' : 'badge-status-busy'}">
-                                        ${b.status}
+                                    <span class="badge-pro ${b.status === 'confirmed' ? 'badge-status-open' : (b.status === 'completed' ? 'badge-admin-manga' : 'badge-status-busy')}">
+                                        ${b.status === 'confirmed' ? '⚡ Confirmed' : (b.status === 'completed' ? '🏆 Completed' : '❌ Cancelled')}
                                     </span>
                                 </td>
                                 <td style="text-align: right;">
@@ -501,8 +501,9 @@ async function loadBookingHistory() {
                                         <button class="btn-manga btn-manga-danger btn-manga-sm" onclick="cancelBooking(${b.id})">
                                             Cancel
                                         </button>
-                                    ` : '<span style="color: var(--text-dim); font-size: 0.85rem;">Released</span>'}
+                                    ` : (b.status === 'completed' ? '<span style="color: var(--accent-green); font-size: 0.85rem; font-weight: 700;">Completed</span>' : '<span style="color: var(--text-dim); font-size: 0.85rem;">Released</span>')}
                                 </td>
+
                             </tr>
                         `).join('')}
                     </tbody>

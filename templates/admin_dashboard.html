@@ -201,12 +201,15 @@
                     </div>
                     <div style="display: flex; gap: 10px;">
                         <input type="text" id="bookingSearch" class="pro-form-control" placeholder="Search player or court..." style="width: 220px; padding: 8px 14px;" oninput="onBookingSearch()">
-                        <select id="bookingStatusFilter" class="pro-form-control" style="width: 140px; padding: 8px 14px;" onchange="loadAdminBookings()">
+                        <select id="bookingStatusFilter" class="pro-form-control" style="width: 155px; padding: 8px 14px;" onchange="loadAdminBookings()">
                             <option value="all">All Statuses</option>
+                            <option value="confirmed">⚡ Confirmed</option>
+                            <option value="completed">🏆 Completed</option>
+                            <option value="cancelled">❌ Cancelled</option>
                             <option value="upcoming">Upcoming</option>
-                            <option value="past">Past</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="past">Past Matches</option>
                         </select>
+
                     </div>
                 </div>
                 <div id="admin-bookings-container">

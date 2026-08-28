@@ -665,14 +665,15 @@ async function loadAdminBookings() {
                                 <td>${b.date} @ <strong style="color: var(--text-white);">${b.time_slot}</strong> (${b.duration}hr)</td>
                                 <td style="font-weight: 900; color: var(--text-white); font-family: var(--font-heading); font-size: 1.05rem;">₹${b.total_price}</td>
                                 <td>
-                                    <span class="badge-pro ${b.status === 'confirmed' ? 'badge-status-open' : 'badge-status-busy'}">
-                                        ${b.status}
+                                    <span class="badge-pro ${b.status === 'confirmed' ? 'badge-status-open' : (b.status === 'completed' ? 'badge-admin-manga' : 'badge-status-busy')}">
+                                        ${b.status === 'confirmed' ? '⚡ Confirmed' : (b.status === 'completed' ? '🏆 Completed' : '❌ Cancelled')}
                                     </span>
                                 </td>
                                 <td style="text-align: right;">
                                     ${b.status === 'confirmed' ? `
-                                        <button class="btn-manga btn-manga-danger btn-manga-sm" onclick="adminCancelBooking(${b.id})">Cancel Match</button>
-                                    ` : '<span style="color: var(--text-dim); font-size: 0.85rem;">Released</span>'}
+                                        <button class="btn-manga btn-manga-primary btn-manga-sm" style="margin-right: 6px; padding: 6px 12px;" onclick="adminCompleteBooking(${b.id})">✅ Complete</button>
+                                        <button class="btn-manga btn-manga-danger btn-manga-sm" style="padding: 6px 12px;" onclick="adminCancelBooking(${b.id})">Cancel</button>
+                                    ` : (b.status === 'completed' ? '<span style="color: var(--accent-green); font-size: 0.85rem; font-weight: 700;">Match Finished</span>' : '<span style="color: var(--text-dim); font-size: 0.85rem;">Released</span>')}
                                 </td>
                             </tr>
                         `).join('')}
@@ -682,6 +683,17 @@ async function loadAdminBookings() {
         `;
     } catch (err) {
         container.innerHTML = `<p style="color: var(--accent-red);">Failed to load bookings: ${err.message}</p>`;
+    }
+}
+
+async function adminCompleteBooking(bookingId) {
+    if (!confirm(`Mark Match Booking #${bookingId} as Completed?`)) return;
+    try {
+        await ApiClient.post(`/api/admin/bookings/${bookingId}/complete`);
+        ApiClient.showToast(`Booking #${bookingId} marked as Completed 🏆`, 'success');
+        loadAdminBookings();
+    } catch (err) {
+        ApiClient.showToast(err.message || 'Failed to complete booking', 'error');
     }
 }
 
@@ -695,6 +707,7 @@ async function adminCancelBooking(bookingId) {
         ApiClient.showToast(err.message, 'error');
     }
 }
+
 
 // ----------------------------------------------------
 // 7. Users Management

@@ -1,6 +1,6 @@
 """Atomic Booking Management Service."""
 import logging
-from datetime import date
+from datetime import datetime, date
 from typing import Dict, Any, Optional, List
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
@@ -179,3 +179,63 @@ class BookingService:
         db.session.commit()
         logger.info("Cancelled Booking #%s by User #%s (Admin: %s)", booking_id, user_id, is_admin)
         return booking
+
+    @classmethod
+    def complete_booking(cls, booking_id: int, is_admin: bool = False) -> Booking:
+        """
+        Marks a match booking as completed.
+        """
+        booking = db.session.get(Booking, booking_id)
+        if not booking:
+            raise BookingNotFoundError(f"Booking #{booking_id} does not exist.")
+
+        if booking.status == BookingStatus.CANCELLED.value:
+            raise ValueError("Cannot mark a cancelled booking as completed.")
+
+        booking.status = BookingStatus.COMPLETED.value
+        db.session.commit()
+        logger.info("Completed Booking #%s", booking_id)
+        return booking
+
+    @classmethod
+    def auto_complete_past_bookings(cls) -> int:
+        """
+        Automatically marks past confirmed bookings as completed.
+        """
+        now = datetime.now()
+        today = now.date()
+        current_time_str = now.strftime('%H:%M')
+
+        # 1. Past dates
+        past_bookings = Booking.query.filter(
+            Booking.date < today,
+            Booking.status == BookingStatus.CONFIRMED.value
+        ).all()
+
+        updated_count = 0
+        for b in past_bookings:
+            b.status = BookingStatus.COMPLETED.value
+            updated_count += 1
+
+        # 2. Today's bookings where scheduled duration has passed
+        today_bookings = Booking.query.filter(
+            Booking.date == today,
+            Booking.status == BookingStatus.CONFIRMED.value
+        ).all()
+
+        for b in today_bookings:
+            try:
+                slots = AvailabilityService.get_slots_for_duration(b.time_slot, b.duration or 1)
+                last_slot = slots[-1] if slots else b.time_slot
+                end_hour = int(last_slot.split(':')[0]) + 1
+                end_time_str = f"{end_hour:02d}:00"
+                if current_time_str >= end_time_str:
+                    b.status = BookingStatus.COMPLETED.value
+                    updated_count += 1
+            except Exception:
+                pass
+
+        if updated_count > 0:
+            db.session.commit()
+        return updated_count
+
