@@ -726,7 +726,7 @@ a:hover {
 }
 
 /* ==========================================================
-   Comprehensive Responsive & Mobile Viewport Rules
+   Comprehensive Responsive & Mobile Viewport Rules (App-Like Mobile Experience)
    ========================================================== */
 @media (max-width: 1080px) {
     .booking-layout-grid {
@@ -737,31 +737,60 @@ a:hover {
 
 @media (max-width: 990px) {
     .admin-layout {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
     .admin-sidebar {
-        position: static;
+        position: sticky;
+        top: 10px;
+        z-index: 90;
+        width: 100%;
+    }
+    .admin-sidebar .pro-card {
+        padding: 6px !important;
+        border-radius: var(--radius-full);
+        background: rgba(18, 18, 24, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+    }
+    .admin-sidebar .pro-card > div:first-child {
+        display: none;
     }
     .admin-sidebar-nav {
+        display: flex;
         flex-direction: row;
+        gap: 6px;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        padding-bottom: 8px;
+        padding: 2px 4px;
+        scrollbar-width: none;
+    }
+    .admin-sidebar-nav::-webkit-scrollbar {
+        display: none;
     }
     .admin-nav-item {
         white-space: nowrap;
+        padding: 8px 14px;
+        font-size: 0.82rem;
+        border-radius: var(--radius-full);
+        flex: 0 0 auto;
         width: auto;
+        transform: none !important;
+    }
+    .admin-nav-item.active {
+        box-shadow: 0 2px 10px rgba(255, 90, 31, 0.4);
     }
 }
 
 @media (max-width: 900px) {
     .app-container {
-        padding: 16px 14px;
+        padding: 14px 12px;
     }
     .booking-layout-grid {
         display: flex;
         flex-direction: column;
-        gap: 22px;
+        gap: 20px;
     }
     .sticky-summary-widget {
         position: static;
@@ -770,90 +799,221 @@ a:hover {
         margin-top: 4px;
     }
     .date-duration-grid {
-        grid-template-columns: 1fr;
-        gap: 14px;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
     }
     .grid-2, .grid-3, .grid-4 {
         grid-template-columns: 1fr;
         gap: 14px;
     }
-    .pro-card {
-        padding: 20px 18px;
-        border-radius: var(--radius-lg);
-    }
-    .slots-grid-pro {
-        grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
-        gap: 8px;
-    }
-    .slot-chip-pro {
-        padding: 10px 4px;
-        font-size: 0.88rem;
-    }
 }
 
-@media (max-width: 680px) {
+@media (max-width: 768px) {
     .app-container {
-        padding: 12px 10px;
+        padding: 10px 8px;
     }
+
+    /* 1. Sleek Compact Mobile Header */
     .navbar-pro {
-        flex-direction: column;
-        padding: 14px 16px;
-        gap: 14px;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
         border-radius: var(--radius-lg);
-        margin-bottom: 20px;
-        text-align: center;
+        margin-bottom: 14px;
+        gap: 8px;
     }
     .brand-logo-wrap {
-        width: 100%;
-        justify-content: center;
+        gap: 8px;
+    }
+    .brand-icon-box {
+        width: 34px;
+        height: 34px;
+        font-size: 1.1rem;
+        border-radius: 8px;
+    }
+    .brand-name {
+        font-size: 1.05rem;
+    }
+    .brand-tag {
+        font-size: 0.6rem;
     }
     .nav-links-group {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
         align-items: center;
-        gap: 8px;
-        width: 100%;
-    }
-    .nav-user-badge-wrap {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        border-left: none !important;
-        width: 100%;
-        justify-content: center;
-        margin-top: 4px;
-    }
-    .pro-card {
-        padding: 16px 14px;
-    }
-    .slots-grid-pro {
-        grid-template-columns: repeat(4, 1fr);
         gap: 6px;
     }
-    .slot-chip-pro {
-        padding: 9px 2px;
+    .nav-link-item {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+    .nav-user-badge-wrap {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        gap: 4px;
+    }
+    .nav-username {
+        display: none;
+    }
+    .btn-logout {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+        border-radius: 8px;
+    }
+    .logout-text {
+        display: none;
+    }
+
+    /* 2. Full-Width Segmented Tab Bar */
+    .main-nav-tabs-wrap {
+        margin-bottom: 14px;
+    }
+    .main-nav-tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    .main-tab-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        padding: 10px 8px;
         font-size: 0.82rem;
+        border-radius: 10px;
+    }
+
+    /* 3. Streamlined Pro Cards */
+    .pro-card {
+        padding: 14px 12px;
+        border-radius: var(--radius-md);
+        margin-bottom: 14px;
+    }
+    .pro-card h3 {
+        font-size: 1.05rem !important;
+    }
+    .pro-card p {
+        font-size: 0.76rem !important;
+        margin-top: 2px !important;
+    }
+
+    /* 4. Compact 2x2 Courts Grid */
+    #courts-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    .court-tile-pro {
+        padding: 10px 8px !important;
+        border-radius: 12px !important;
+    }
+    .court-tile-pro h4 {
+        font-size: 0.92rem !important;
+    }
+    .court-tile-pro div[style*="font-size: 0.8rem"] {
+        display: none !important; /* Hide long subtitles on mobile */
+    }
+    .court-tile-pro div[style*="border-top"] {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        font-size: 0.82rem !important;
+    }
+
+    /* 5. 4-Column Time Slot Grid */
+    .slots-grid-pro {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 6px !important;
+        margin-top: 10px !important;
+    }
+    .slot-chip-pro {
+        padding: 8px 2px !important;
+        font-size: 0.82rem !important;
+        border-radius: 8px !important;
+    }
+
+    /* 6. Compact 2x2 Coaches Grid */
+    #coaches-grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    #coaches-grid .court-tile-pro {
+        padding: 10px 8px !important;
+    }
+    #coaches-grid .court-tile-pro div[style*="font-size: 0.82rem"] {
+        display: none !important;
+    }
+
+    /* 7. Summary & Mobile Action */
+    .sticky-summary-widget {
+        padding: 16px 14px;
+        border-radius: var(--radius-lg);
     }
     .price-total-badge {
         font-size: 1.6rem;
     }
     .btn-manga {
-        padding: 12px 18px;
+        padding: 12px 16px;
         font-size: 0.92rem;
     }
-    .btn-manga-sm {
-        padding: 6px 12px;
+
+    /* 8. Admin Console Mobile View */
+    .admin-main-content h2 {
+        font-size: 1.4rem !important;
+    }
+    .admin-main-content p {
+        font-size: 0.8rem !important;
+    }
+    #admin-view-analytics .grid-4 {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        margin-bottom: 14px !important;
+    }
+    #admin-view-analytics .grid-4 .pro-card {
+        padding: 12px 10px !important;
+    }
+    #admin-view-analytics .grid-4 .pro-card > div:nth-child(2) {
+        font-size: 1.35rem !important;
+        margin-top: 4px !important;
+    }
+    #admin-view-analytics .grid-4 .pro-card > div:first-child {
+        font-size: 0.7rem !important;
+    }
+    #admin-view-analytics .grid-4 .pro-card > div:last-child {
+        font-size: 0.65rem !important;
+    }
+    #admin-view-analytics .grid-2 {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+    }
+
+    /* Master Bookings & Filters on Mobile */
+    #admin-view-bookings .pro-card > div:first-child > div:last-child {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+        margin-top: 10px !important;
+    }
+    #bookingSearch, #bookingStatusFilter, #userSearch {
+        width: 100% !important;
+    }
+
+    .pro-table-wrap {
+        border-radius: var(--radius-md);
+    }
+    .pro-table th, .pro-table td {
+        padding: 10px 12px;
         font-size: 0.82rem;
     }
-    #toast-container {
-        left: 14px;
-        right: 14px;
-        bottom: 16px;
-    }
-    .toast-pro {
-        min-width: 100%;
-        max-width: 100%;
-    }
 }
+
 
 

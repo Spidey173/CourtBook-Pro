@@ -427,45 +427,33 @@ body.auth-page {
     color: #FCA5A5;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 768px) {
+    .auth-hero-pane {
+        display: none !important;
+    }
     .auth-split-grid {
-        grid-template-columns: 1fr;
-        max-width: 520px;
-        margin: 20px auto;
+        grid-template-columns: 1fr !important;
+        max-width: 440px !important;
+        margin: 10px auto !important;
+        border-radius: 20px !important;
     }
-    .auth-hero-pane, .auth-form-pane {
-        padding: 32px 24px;
+    .auth-form-pane {
+        padding: 28px 20px !important;
     }
-    .hero-title {
-        font-size: 2.2rem;
+    .auth-wrapper {
+        margin: 10px auto !important;
+        padding: 0 12px !important;
+    }
+    .demo-login-group {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+    }
+    .btn-demo {
+        padding: 10px !important;
+        font-size: 0.82rem !important;
     }
 }
 
-@media (max-width: 540px) {
-    .auth-wrapper {
-        margin: 10px auto;
-        padding: 0 10px;
-    }
-    .auth-split-grid {
-        border-radius: 18px;
-    }
-    .auth-hero-pane {
-        padding: 24px 18px;
-    }
-    .auth-hero-pane .hero-highlights {
-        display: none;
-    }
-    .hero-title {
-        font-size: 1.75rem;
-    }
-    .auth-form-pane {
-        padding: 24px 18px;
-    }
-    .demo-login-group {
-        grid-template-columns: 1fr;
-        gap: 8px;
-    }
-}
 
 
 /* Quick Demo Access styling */

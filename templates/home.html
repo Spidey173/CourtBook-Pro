@@ -19,16 +19,17 @@
 {% endif %}
 
 <!-- Main Navigation Tabs -->
-<div style="margin-bottom: 28px;">
-    <div style="display: flex; gap: 10px; border-bottom: 1px solid var(--border-card); padding-bottom: 16px; overflow-x: auto;">
-        <button id="tab-book" class="btn-manga btn-manga-primary" onclick="switchMainTab('book')">
+<div class="main-nav-tabs-wrap">
+    <div class="main-nav-tabs">
+        <button id="tab-book" class="btn-manga btn-manga-primary main-tab-btn" onclick="switchMainTab('book')">
             <span>🏸</span> Court Reservation Hub
         </button>
-        <button id="tab-history" class="btn-manga btn-manga-secondary" onclick="switchMainTab('history')">
+        <button id="tab-history" class="btn-manga btn-manga-secondary main-tab-btn" onclick="switchMainTab('history')">
             <span>📜</span> Player Match History
         </button>
     </div>
 </div>
+
 
 <!-- =========================================================
      TAB 1: COURT RESERVATION HUB

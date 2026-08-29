@@ -40,16 +40,17 @@
                 </a>
                 {% endif %}
                 
-                <div class="nav-user-badge-wrap" style="display: flex; align-items: center; gap: 8px; margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--border-card);">
+                <div class="nav-user-badge-wrap">
                     <span class="badge-pro {{ 'badge-admin-manga' if current_user.is_admin else 'badge-member-manga' }}">
                         {{ 'Pro Admin' if current_user.is_admin else 'Player' }}
                     </span>
-                    <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-white);">{{ current_user.username }}</span>
+                    <span class="nav-username">{{ current_user.username }}</span>
                 </div>
                 
-                <a href="{{ url_for('auth.logout') }}" onclick="event.preventDefault(); window.location.replace('{{ url_for('auth.logout') }}');" class="btn-manga btn-manga-danger btn-manga-sm" style="margin-left: 10px;">
-                    <span>🚪</span> Logout
+                <a href="{{ url_for('auth.logout') }}" onclick="event.preventDefault(); window.location.replace('{{ url_for('auth.logout') }}');" class="btn-manga btn-manga-danger btn-manga-sm btn-logout">
+                    <span>🚪</span> <span class="logout-text">Logout</span>
                 </a>
+
             </div>
             {% else %}
             <div class="nav-links-group">
