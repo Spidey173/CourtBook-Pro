@@ -20,17 +20,14 @@ const bookingState = {
     coaches: [],
     equipment: [],
     timeSlots: [],
+    pricingRules: {},
     bookedCourtSlots: {},
     equipmentAvailability: {}
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
     initDatePicker();
-    await loadInitialResources();
-    renderCourts();
-    renderCoaches();
-    renderEquipment();
-    await refreshAvailability();
+    await loadBootstrapData();
 });
 
 function initDatePicker() {
@@ -67,6 +64,33 @@ function updateDateBadge() {
     }
 }
 
+async function loadBootstrapData() {
+    try {
+        const data = await ApiClient.get(`/api/bootstrap?date=${bookingState.date}`);
+        bookingState.courts = data.courts || [];
+        bookingState.coaches = data.coaches || [];
+        bookingState.equipment = data.equipment || [];
+        bookingState.timeSlots = data.timeSlots || [];
+        bookingState.pricingRules = data.pricingRules || {};
+
+        const availability = data.availability || {};
+        bookingState.bookedCourtSlots = availability.booked_time_slots || availability.booked_courts || {};
+        bookingState.equipmentAvailability = availability.equipment_availability || {};
+
+        renderCourts();
+        renderCoaches();
+        renderEquipment();
+        if (bookingState.selectedCourt) {
+            renderTimeSlots();
+        }
+        updateEquipmentStockLabels();
+    } catch (err) {
+        console.warn('Bootstrap endpoint failed, falling back to legacy loaders:', err);
+        await loadInitialResources();
+        await refreshAvailability();
+    }
+}
+
 async function loadInitialResources() {
     try {
         const [courts, coaches, equipment, slots] = await Promise.all([
@@ -80,6 +104,9 @@ async function loadInitialResources() {
         bookingState.coaches = Array.isArray(coaches) ? coaches : (coaches && coaches.data ? coaches.data : []);
         bookingState.equipment = Array.isArray(equipment) ? equipment : (equipment && equipment.data ? equipment.data : []);
         bookingState.timeSlots = Array.isArray(slots) ? slots : (slots && slots.data ? slots.data : []);
+        renderCourts();
+        renderCoaches();
+        renderEquipment();
     } catch (err) {
         ApiClient.showToast('Failed to load court resources. Please refresh.', 'error');
     }
@@ -100,6 +127,7 @@ async function refreshAvailability() {
         console.error('Error loading slot availability:', err);
     }
 }
+
 
 function onDateOrDurationChange() {
     const dateInput = document.getElementById('bookingDate');
@@ -325,6 +353,60 @@ function updateEquipmentStockLabels() {
     });
 }
 
+function calculateLocalPricePreview() {
+    if (!bookingState.selectedCourt || !bookingState.selectedSlot) return null;
+
+    const court = bookingState.selectedCourt;
+    const duration = bookingState.duration || 1;
+    const coach = bookingState.selectedCoach;
+    const rules = bookingState.pricingRules || {};
+
+    let courtSubtotal = (court.base_price || 0) * duration;
+    
+    if (court.type === 'indoor' && rules.indoor_surcharge) {
+        courtSubtotal += (parseFloat(rules.indoor_surcharge) * duration);
+    }
+
+    const d = new Date(bookingState.date + 'T00:00:00');
+    const dayOfWeek = d.getDay();
+    if ((dayOfWeek === 0 || dayOfWeek === 6) && rules.weekend_multiplier) {
+        courtSubtotal *= parseFloat(rules.weekend_multiplier);
+    }
+
+    let multiDiscount = 0;
+    if (duration === 2 && rules.multi_hour_2h_discount) multiDiscount = parseFloat(rules.multi_hour_2h_discount);
+    if (duration === 3 && rules.multi_hour_3h_discount) multiDiscount = parseFloat(rules.multi_hour_3h_discount);
+    if (duration >= 4 && rules.multi_hour_4h_plus_discount) multiDiscount = parseFloat(rules.multi_hour_4h_plus_discount);
+
+    if (multiDiscount > 0) {
+        courtSubtotal *= (1 - multiDiscount / 100);
+    }
+
+    let coachSubtotal = 0;
+    if (coach) {
+        coachSubtotal = (coach.price || 0) * duration;
+    }
+
+    let equipSubtotal = 0;
+    let totalEquipQty = 0;
+    for (const [eqId, qty] of Object.entries(bookingState.equipmentRequests)) {
+        if (qty > 0) {
+            const item = bookingState.equipment.find(e => e.id === parseInt(eqId, 10));
+            if (item) {
+                equipSubtotal += (item.price || 0) * qty;
+                totalEquipQty += qty;
+            }
+        }
+    }
+
+    if (totalEquipQty >= 3 && rules.equipment_bundle_discount) {
+        const bundleDisc = parseFloat(rules.equipment_bundle_discount);
+        equipSubtotal *= (1 - bundleDisc / 100);
+    }
+
+    return Math.round(courtSubtotal + coachSubtotal + equipSubtotal);
+}
+
 async function updateSummary() {
     const emptyBox = document.getElementById('summary-empty');
     const contentBox = document.getElementById('summary-content');
@@ -342,6 +424,12 @@ async function updateSummary() {
     document.getElementById('sum-time').textContent = `${bookingState.date} @ ${bookingState.selectedSlot}`;
     document.getElementById('sum-duration').textContent = `${bookingState.duration} Hour${bookingState.duration > 1 ? 's' : ''}`;
     document.getElementById('sum-coach').textContent = bookingState.selectedCoach ? bookingState.selectedCoach.name : 'None';
+
+    // ⚡ Instant 0ms optimistic estimate
+    const localEst = calculateLocalPricePreview();
+    if (localEst !== null) {
+        document.getElementById('sum-total').textContent = `₹${localEst}`;
+    }
 
     try {
         const preview = await ApiClient.post('/api/calculate-price', {
@@ -367,9 +455,10 @@ async function updateSummary() {
 
         document.getElementById('sum-total').textContent = `₹${preview.data.total_price}`;
     } catch (err) {
-        console.error('Failed to preview price:', err);
+        console.error('Failed to preview authoritative price:', err);
     }
 }
+
 
 async function submitBooking() {
     if (!bookingState.selectedCourt || !bookingState.selectedSlot) {

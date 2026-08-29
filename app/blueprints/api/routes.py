@@ -1,6 +1,7 @@
 """Unified RESTful API Controller."""
 import logging
 from datetime import datetime, date
+from typing import Dict, Any, Optional, List
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from app.extensions import db
@@ -36,10 +37,10 @@ logger = logging.getLogger(__name__)
 api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 # ==========================================
-# In-Memory Micro-Cache Layer (60s TTL)
+# In-Memory Micro-Cache Layer (120s TTL)
 # ==========================================
 _CACHE_STORE: Dict[str, Any] = {}
-_CACHE_TTL_SECONDS = 60
+_CACHE_TTL_SECONDS = 120
 
 
 def get_cached_resource(key: str, loader_fn, ttl: int = _CACHE_TTL_SECONDS):
@@ -68,10 +69,57 @@ def invalidate_cache(key_prefix: Optional[str] = None):
 # 1. Public & Core Resource Endpoints
 # ==========================================
 
+@api_bp.route('/bootstrap', methods=['GET'])
+@api_bp.route('/v1/bootstrap', methods=['GET'])
+@api_login_required
+def get_bootstrap():
+    """Consolidated endpoint returning all initial application resources and availability in 1 single roundtrip."""
+    date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
+    try:
+        query_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+    except ValueError:
+        query_date = date.today()
+
+    courts = get_cached_resource('courts_active_list', lambda: [c.to_dict() for c in Court.query.filter_by(is_active=True).order_by(Court.id).all()])
+    coaches = get_cached_resource('coaches_active_list', lambda: [c.to_dict() for c in Coach.query.filter_by(is_active=True).order_by(Coach.id).all()])
+    equipment = get_cached_resource('equipment_active_list', lambda: [{
+        'id': eq.id,
+        'name': eq.name,
+        'price': eq.price,
+        'available': eq.total_available,
+        'total_available': eq.total_available,
+        'is_active': eq.is_active
+    } for eq in Equipment.query.filter_by(is_active=True).order_by(Equipment.id).all()])
+
+    def _load_rules():
+        rules = PricingRule.query.filter_by(enabled=True).all()
+        rules_dict = {}
+        for r in rules:
+            try:
+                val = float(r.value)
+                rules_dict[r.name] = int(val) if val.is_integer() else val
+            except (ValueError, TypeError):
+                rules_dict[r.name] = r.value
+        return rules_dict
+
+    pricing_rules = get_cached_resource('pricing_rules_active_list', _load_rules)
+    availability = AvailabilityService.get_daily_booked_slots(query_date)
+
+    return jsonify({
+        'courts': courts,
+        'coaches': coaches,
+        'equipment': equipment,
+        'timeSlots': VALID_TIME_SLOTS,
+        'pricingRules': pricing_rules,
+        'availability': availability
+    })
+
+
 @api_bp.route('/courts', methods=['GET'])
 @api_bp.route('/v1/courts', methods=['GET'])
 @api_login_required
 def get_courts():
+
     """Returns list of all active courts with high-speed micro-caching."""
     def _load():
         courts = Court.query.filter_by(is_active=True).order_by(Court.id).all()
