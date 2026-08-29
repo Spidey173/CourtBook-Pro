@@ -30,27 +30,28 @@
             
             {% if current_user.is_authenticated %}
             <div class="nav-links-group">
-                <a href="{{ url_for('main.home') }}" class="nav-link-item {{ 'active' if request.endpoint == 'main.home' else '' }}">
-                    <span>📅</span> Book Court
+                {% if request.endpoint != 'main.home' %}
+                <a href="{{ url_for('main.home') }}" class="nav-link-item">
+                    <span>📅</span> <span class="nav-text">Book Court</span>
                 </a>
+                {% endif %}
                 
-                {% if current_user.is_admin %}
-                <a href="{{ url_for('admin.admin_dashboard') }}" class="nav-link-item {{ 'active' if request.endpoint == 'admin.admin_dashboard' else '' }}">
-                    <span>⚙️</span> Admin Console
+                {% if current_user.is_admin and request.endpoint != 'admin.admin_dashboard' %}
+                <a href="{{ url_for('admin.admin_dashboard') }}" class="nav-link-item">
+                    <span>⚙️</span> <span class="nav-text">Admin</span>
                 </a>
                 {% endif %}
                 
                 <div class="nav-user-badge-wrap">
                     <span class="badge-pro {{ 'badge-admin-manga' if current_user.is_admin else 'badge-member-manga' }}">
-                        {{ 'Pro Admin' if current_user.is_admin else 'Player' }}
+                        {{ 'Admin' if current_user.is_admin else 'Player' }}
                     </span>
                     <span class="nav-username">{{ current_user.username }}</span>
                 </div>
                 
-                <a href="{{ url_for('auth.logout') }}" onclick="event.preventDefault(); window.location.replace('{{ url_for('auth.logout') }}');" class="btn-manga btn-manga-danger btn-manga-sm btn-logout">
+                <a href="{{ url_for('auth.logout') }}" onclick="event.preventDefault(); window.location.replace('{{ url_for('auth.logout') }}');" class="btn-manga btn-manga-danger btn-manga-sm btn-logout" title="Logout">
                     <span>🚪</span> <span class="logout-text">Logout</span>
                 </a>
-
             </div>
             {% else %}
             <div class="nav-links-group">
