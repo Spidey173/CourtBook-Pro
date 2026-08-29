@@ -40,7 +40,7 @@
                 </a>
                 {% endif %}
                 
-                <div style="display: flex; align-items: center; gap: 8px; margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--border-card);">
+                <div class="nav-user-badge-wrap" style="display: flex; align-items: center; gap: 8px; margin-left: 12px; padding-left: 16px; border-left: 1px solid var(--border-card);">
                     <span class="badge-pro {{ 'badge-admin-manga' if current_user.is_admin else 'badge-member-manga' }}">
                         {{ 'Pro Admin' if current_user.is_admin else 'Player' }}
                     </span>

@@ -441,6 +441,33 @@ body.auth-page {
     }
 }
 
+@media (max-width: 540px) {
+    .auth-wrapper {
+        margin: 10px auto;
+        padding: 0 10px;
+    }
+    .auth-split-grid {
+        border-radius: 18px;
+    }
+    .auth-hero-pane {
+        padding: 24px 18px;
+    }
+    .auth-hero-pane .hero-highlights {
+        display: none;
+    }
+    .hero-title {
+        font-size: 1.75rem;
+    }
+    .auth-form-pane {
+        padding: 24px 18px;
+    }
+    .demo-login-group {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}
+
+
 /* Quick Demo Access styling */
 .auth-divider {
     display: flex;

@@ -34,14 +34,14 @@
      TAB 1: COURT RESERVATION HUB
      ========================================================= -->
 <div id="view-book">
-    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 28px;">
+    <div class="booking-layout-grid">
         
         <!-- Left Step-by-Step Selection Column -->
         <div style="display: flex; flex-direction: column; gap: 24px;">
             
             <!-- Step 1: Date & Duration -->
             <div class="pro-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 10px;">
                     <div>
                         <h3 style="font-size: 1.25rem;">1. Select Date & Duration</h3>
                         <p style="color: var(--text-muted); font-size: 0.85rem;">Reserve consecutive hours with progressive multi-hour discounts</p>
@@ -49,7 +49,7 @@
                     <span id="date-preview-badge" class="badge-pro badge-admin-manga">Today's Schedule</span>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px;">
+                <div class="date-duration-grid">
                     <div class="pro-form-group" style="margin-bottom: 0;">
                         <label class="pro-form-label" for="bookingDate">Reservation Date</label>
                         <input type="date" id="bookingDate" class="pro-form-control" onchange="onDateOrDurationChange()">
@@ -57,6 +57,7 @@
                     <div class="pro-form-group" style="margin-bottom: 0;">
                         <label class="pro-form-label" for="bookingDuration">Session Duration</label>
                         <select id="bookingDuration" class="pro-form-control" onchange="onDateOrDurationChange()">
+
                             <option value="1">1 Hour (Standard Rate)</option>
                             <option value="2">2 Hours (⚡ 10% Multi-Hour Discount)</option>
                             <option value="3">3 Hours (⚡ 20% Multi-Hour Discount)</option>

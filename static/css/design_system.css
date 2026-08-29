@@ -514,26 +514,40 @@ a:hover {
     box-shadow: 0 4px 20px rgba(255, 90, 31, 0.15);
 }
 
-/* Grid Layouts */
+/* Layout & Grid System */
+.booking-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 28px;
+    align-items: start;
+}
+
+.date-duration-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
 .grid-2 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 22px;
 }
 .grid-3 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 20px;
 }
 .grid-4 {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 18px;
 }
 
 /* Modern Tables */
 .pro-table-wrap {
     overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
     border-radius: var(--radius-lg);
     border: 1px solid var(--border-card);
     background: var(--bg-surface);
@@ -543,6 +557,7 @@ a:hover {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
+    min-width: 600px;
 }
 
 .pro-table thead tr {
@@ -710,7 +725,16 @@ a:hover {
     min-width: 0;
 }
 
-/* Responsive */
+/* ==========================================================
+   Comprehensive Responsive & Mobile Viewport Rules
+   ========================================================== */
+@media (max-width: 1080px) {
+    .booking-layout-grid {
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+    }
+}
+
 @media (max-width: 990px) {
     .admin-layout {
         grid-template-columns: 1fr;
@@ -721,6 +745,7 @@ a:hover {
     .admin-sidebar-nav {
         flex-direction: row;
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
         padding-bottom: 8px;
     }
     .admin-nav-item {
@@ -730,9 +755,105 @@ a:hover {
 }
 
 @media (max-width: 900px) {
-    .app-container { padding: 14px; }
-    .navbar-pro { flex-direction: column; gap: 18px; text-align: center; }
-    .nav-links-group { flex-wrap: wrap; justify-content: center; }
-    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    .app-container {
+        padding: 16px 14px;
+    }
+    .booking-layout-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 22px;
+    }
+    .sticky-summary-widget {
+        position: static;
+        top: auto;
+        padding: 22px;
+        margin-top: 4px;
+    }
+    .date-duration-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .pro-card {
+        padding: 20px 18px;
+        border-radius: var(--radius-lg);
+    }
+    .slots-grid-pro {
+        grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+        gap: 8px;
+    }
+    .slot-chip-pro {
+        padding: 10px 4px;
+        font-size: 0.88rem;
+    }
 }
+
+@media (max-width: 680px) {
+    .app-container {
+        padding: 12px 10px;
+    }
+    .navbar-pro {
+        flex-direction: column;
+        padding: 14px 16px;
+        gap: 14px;
+        border-radius: var(--radius-lg);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    .brand-logo-wrap {
+        width: 100%;
+        justify-content: center;
+    }
+    .nav-links-group {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+    .nav-user-badge-wrap {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        border-left: none !important;
+        width: 100%;
+        justify-content: center;
+        margin-top: 4px;
+    }
+    .pro-card {
+        padding: 16px 14px;
+    }
+    .slots-grid-pro {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+    .slot-chip-pro {
+        padding: 9px 2px;
+        font-size: 0.82rem;
+    }
+    .price-total-badge {
+        font-size: 1.6rem;
+    }
+    .btn-manga {
+        padding: 12px 18px;
+        font-size: 0.92rem;
+    }
+    .btn-manga-sm {
+        padding: 6px 12px;
+        font-size: 0.82rem;
+    }
+    #toast-container {
+        left: 14px;
+        right: 14px;
+        bottom: 16px;
+    }
+    .toast-pro {
+        min-width: 100%;
+        max-width: 100%;
+    }
+}
+
 
