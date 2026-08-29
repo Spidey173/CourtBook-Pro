@@ -116,17 +116,17 @@ async function loadAdminCourts() {
                     <tbody>
                         ${courts.map(c => `
                             <tr>
-                                <td style="font-weight: 800; color: var(--text-white);">${c.name}</td>
-                                <td>
+                                <td data-label="Court Name" style="font-weight: 800; color: var(--text-white);">${c.name}</td>
+                                <td data-label="Type">
                                     <span class="badge-pro ${c.type === 'indoor' ? 'badge-indoor' : 'badge-outdoor'}">${c.type}</span>
                                 </td>
-                                <td style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${c.basePrice || c.base_price}/hr</td>
-                                <td>
+                                <td data-label="Base Rate" style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${c.basePrice || c.base_price}/hr</td>
+                                <td data-label="Status">
                                     <span class="badge-pro ${(c.isActive || c.is_active) ? 'badge-status-open' : 'badge-status-busy'}">
                                         ${(c.isActive || c.is_active) ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="Actions" style="text-align: right;">
                                     <button class="btn-manga btn-manga-secondary btn-manga-sm" onclick='openEditCourtModal(${JSON.stringify(c)})'>Edit</button>
                                     ${(c.isActive || c.is_active) ? `
                                         <button class="btn-manga btn-manga-danger btn-manga-sm" onclick="deactivateCourt(${c.id})">Deactivate</button>
@@ -271,15 +271,15 @@ async function loadAdminCoaches() {
                     <tbody>
                         ${coaches.map(c => `
                             <tr>
-                                <td style="font-weight: 800; color: var(--text-white);">${c.name}</td>
-                                <td style="color: var(--text-muted);">${c.specialization || 'BWF Certified Coach'}</td>
-                                <td style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${c.price}/hr</td>
-                                <td>
+                                <td data-label="Coach Name" style="font-weight: 800; color: var(--text-white);">${c.name}</td>
+                                <td data-label="Specialization" style="color: var(--text-muted);">${c.specialization || 'BWF Certified Coach'}</td>
+                                <td data-label="Hourly Fee" style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${c.price}/hr</td>
+                                <td data-label="Status">
                                     <span class="badge-pro ${(c.isActive || c.is_active) ? 'badge-status-open' : 'badge-status-busy'}">
                                         ${(c.isActive || c.is_active) ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="Actions" style="text-align: right;">
                                     <button class="btn-manga btn-manga-secondary btn-manga-sm" onclick='openEditCoachModal(${JSON.stringify(c)})'>Edit</button>
                                     ${(c.isActive || c.is_active) ? `
                                         <button class="btn-manga btn-manga-danger btn-manga-sm" onclick="deactivateCoach(${c.id})">Deactivate</button>
@@ -418,15 +418,15 @@ async function loadAdminEquipment() {
                     <tbody>
                         ${items.map(eq => `
                             <tr>
-                                <td style="font-weight: 800; color: var(--text-white);">${eq.name}</td>
-                                <td style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${eq.price}</td>
-                                <td style="font-weight: 700; color: var(--text-white);">${eq.totalAvailable || eq.total_available} units</td>
-                                <td>
+                                <td data-label="Item Name" style="font-weight: 800; color: var(--text-white);">${eq.name}</td>
+                                <td data-label="Rental Price" style="font-weight: 800; color: var(--orange-primary); font-family: var(--font-heading);">₹${eq.price}/hr</td>
+                                <td data-label="Total Stock" style="font-weight: 700; color: var(--text-white);">${eq.totalAvailable || eq.total_available} units</td>
+                                <td data-label="Status">
                                     <span class="badge-pro ${(eq.isActive || eq.is_active) ? 'badge-status-open' : 'badge-status-busy'}">
                                         ${(eq.isActive || eq.is_active) ? 'Active' : 'Inactive'}
                                     </span>
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="Actions" style="text-align: right;">
                                     <button class="btn-manga btn-manga-secondary btn-manga-sm" onclick='openEditEquipmentModal(${JSON.stringify(eq)})'>Edit Stock</button>
                                     ${(eq.isActive || eq.is_active) ? `
                                         <button class="btn-manga btn-manga-danger btn-manga-sm" onclick="deactivateEquipment(${eq.id})">Deactivate</button>
@@ -550,33 +550,55 @@ async function loadAdminPricingRules() {
 
     try {
         pricingRulesData = await ApiClient.get('/api/admin/pricing-rules');
+        
+        const friendlyNames = {
+            'peak_hours': 'Peak Hours Surge Rate',
+            'weekend': 'Weekend Dynamic Surge',
+            'indoor': 'BWF Indoor Court Premium',
+            'multiple_hours': 'Multi-Hour Duration Discount',
+            'bundle': 'Equipment Bundle Savings'
+        };
+
+        const ruleDescriptions = {
+            'peak_hours': 'Active daily from 18:00 to 21:00 for prime-time bookings',
+            'weekend': 'Applies automatically to Saturday and Sunday bookings',
+            'indoor': 'Applies to BWF tournament grade synthetic indoor courts',
+            'multiple_hours': 'Applies progressive discount for 2, 3, or 4 consecutive hours',
+            'bundle': 'Applies discount when renting 3 or more equipment items'
+        };
+
         container.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div style="display: flex; flex-direction: column; gap: 14px;">
                 ${pricingRulesData.map(r => `
-                    <div class="pro-card" style="padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
-                        <div>
-                            <div style="font-weight: 800; font-size: 1.1rem; text-transform: capitalize; color: var(--text-white);">${r.rule_type.replace('_', ' ')}</div>
-                            <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 2px;">
-                                ${r.rule_type === 'peak_hours' ? `Active: ${r.start_time || '18:00'} - ${r.end_time || '21:00'}` : ''}
-                                ${r.rule_type === 'bundle' ? `Min equipment units: ${r.min_items || 3}` : ''}
+                    <div class="pro-card" style="padding: 18px 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 10px; flex-wrap: wrap;">
+                            <div>
+                                <div style="font-weight: 800; font-size: 1.1rem; color: var(--text-white);">
+                                    ${friendlyNames[r.rule_type] || r.rule_type.replace('_', ' ')}
+                                </div>
+                                <div style="color: var(--text-muted); font-size: 0.82rem; margin-top: 2px;">
+                                    ${ruleDescriptions[r.rule_type] || ''}
+                                </div>
                             </div>
+                            <label style="display: flex; align-items: center; gap: 6px; font-weight: 800; font-size: 0.85rem; color: var(--accent-green); cursor: pointer; white-space: nowrap; background: rgba(0, 245, 160, 0.08); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(0, 245, 160, 0.2);">
+                                <input type="checkbox" id="rule-enable-${r.rule_type}" ${r.enabled ? 'checked' : ''}>
+                                <span>Active Rule</span>
+                            </label>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 16px;">
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; padding-top: 10px; border-top: 1px solid var(--border-subtle);">
                             ${r.multiplier ? `
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Multiplier:</label>
-                                    <input type="number" step="0.1" id="rule-mult-${r.rule_type}" class="pro-form-control" style="width: 80px; padding: 6px 10px;" value="${r.multiplier}">
+                                <div>
+                                    <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">Multiplier (e.g. 1.5x)</label>
+                                    <input type="number" step="0.1" id="rule-mult-${r.rule_type}" class="pro-form-control" style="padding: 8px 12px;" value="${r.multiplier}">
                                 </div>
                             ` : ''}
                             ${r.discount ? `
-                                <div style="display: flex; align-items: center; gap: 8px;">
-                                    <label style="font-size: 0.85rem; color: var(--text-muted); font-weight: 700;">Discount (0-1):</label>
-                                    <input type="number" step="0.05" id="rule-disc-${r.rule_type}" class="pro-form-control" style="width: 80px; padding: 6px 10px;" value="${r.discount}">
+                                <div>
+                                    <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 4px;">Discount Rate (0.1 = 10%)</label>
+                                    <input type="number" step="0.05" id="rule-disc-${r.rule_type}" class="pro-form-control" style="padding: 8px 12px;" value="${r.discount}">
                                 </div>
                             ` : ''}
-                            <label style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 0.9rem; color: var(--text-white); cursor: pointer;">
-                                <input type="checkbox" id="rule-enable-${r.rule_type}" ${r.enabled ? 'checked' : ''}> Enabled
-                            </label>
                         </div>
                     </div>
                 `).join('')}
@@ -656,20 +678,20 @@ async function loadAdminBookings() {
                     <tbody>
                         ${bookings.map(b => `
                             <tr>
-                                <td style="font-weight: 900; color: var(--orange-primary);">#${b.id}</td>
-                                <td>
+                                <td data-label="Match ID" style="font-weight: 900; color: var(--orange-primary);">#${b.id}</td>
+                                <td data-label="Player">
                                     <div style="font-weight: 800; color: var(--text-white);">${b.user ? b.user.username : 'Player #' + b.user_id}</div>
                                     <div style="font-size: 0.8rem; color: var(--text-dim);">${b.user ? b.user.email : ''}</div>
                                 </td>
-                                <td style="font-weight: 700; color: var(--text-white);">${b.court ? b.court.name : 'Court #' + b.court_id}</td>
-                                <td>${b.date} @ <strong style="color: var(--text-white);">${b.time_slot}</strong> (${b.duration}hr)</td>
-                                <td style="font-weight: 900; color: var(--text-white); font-family: var(--font-heading); font-size: 1.05rem;">₹${b.total_price}</td>
-                                <td>
+                                <td data-label="Court" style="font-weight: 700; color: var(--text-white);">${b.court ? b.court.name : 'Court #' + b.court_id}</td>
+                                <td data-label="Date & Time">${b.date} @ <strong style="color: var(--text-white);">${b.time_slot}</strong> (${b.duration}hr)</td>
+                                <td data-label="Total Amount" style="font-weight: 900; color: var(--text-white); font-family: var(--font-heading); font-size: 1.05rem;">₹${b.total_price}</td>
+                                <td data-label="Status">
                                     <span class="badge-pro ${b.status === 'confirmed' ? 'badge-status-open' : (b.status === 'completed' ? 'badge-admin-manga' : 'badge-status-busy')}">
                                         ${b.status === 'confirmed' ? '⚡ Confirmed' : (b.status === 'completed' ? '🏆 Completed' : '❌ Cancelled')}
                                     </span>
                                 </td>
-                                <td style="text-align: right;">
+                                <td data-label="Actions" style="text-align: right;">
                                     ${b.status === 'confirmed' ? `
                                         <button class="btn-manga btn-manga-primary btn-manga-sm" style="margin-right: 6px; padding: 6px 12px;" onclick="adminCompleteBooking(${b.id})">✅ Complete</button>
                                         <button class="btn-manga btn-manga-danger btn-manga-sm" style="padding: 6px 12px;" onclick="adminCancelBooking(${b.id})">Cancel</button>
@@ -742,16 +764,16 @@ async function loadAdminUsers() {
                     <tbody>
                         ${users.map(u => `
                             <tr>
-                                <td style="font-weight: 800; color: var(--text-white);">${u.username}</td>
-                                <td style="color: var(--text-muted);">${u.email}</td>
-                                <td>
+                                <td data-label="Player Handle" style="font-weight: 800; color: var(--text-white);">${u.username}</td>
+                                <td data-label="Email Address" style="color: var(--text-muted);">${u.email}</td>
+                                <td data-label="Account Role">
                                     <span class="badge-pro ${u.isAdmin ? 'badge-admin-manga' : 'badge-member-manga'}">
                                         ${u.isAdmin ? 'Pro Admin' : 'Player Member'}
                                     </span>
                                 </td>
-                                <td style="font-weight: 800; color: var(--text-white);">${u.totalBookings || 0} matches</td>
-                                <td style="color: var(--text-dim); font-size: 0.85rem;">${u.createdAt}</td>
-                                <td style="text-align: right;">
+                                <td data-label="Matches Booked" style="font-weight: 800; color: var(--text-white);">${u.totalBookings || 0} matches</td>
+                                <td data-label="Member Since" style="color: var(--text-dim); font-size: 0.85rem;">${u.createdAt}</td>
+                                <td data-label="Actions" style="text-align: right;">
                                     <button class="btn-manga btn-manga-secondary btn-manga-sm" onclick="toggleUserAdmin(${u.id}, ${!u.isAdmin})">
                                         ${u.isAdmin ? 'Revoke Admin' : 'Promote to Admin'}
                                     </button>
