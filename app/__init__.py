@@ -15,7 +15,10 @@ def create_app(config_name: str = None) -> Flask:
 
     base_dir = Path(__file__).resolve().parent.parent
     instance_path = base_dir / 'instance'
-    instance_path.mkdir(exist_ok=True)
+    try:
+        instance_path.mkdir(exist_ok=True)
+    except OSError:
+        pass
 
     app = Flask(
         __name__,

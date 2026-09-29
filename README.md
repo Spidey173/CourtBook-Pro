@@ -1,9 +1,9 @@
 # 🏸 CourtBook Pro — Enterprise Sports Court Booking Platform
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-court--book--pro--r6oj.vercel.app-black?style=for-the-badge&logo=vercel)](https://court-book-pro-r6oj.vercel.app)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![PostgreSQL](https://img.shields.io/badge/Neon%20PostgreSQL-AWS%20Cloud-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
-[![Vercel](https://img.shields.io/badge/Vercel-Deployed-black?style=for-the-badge&logo=vercel)](https://vercel.com)
 
 An industry-standard, full-stack multi-resource court reservation and complex management platform built with **Python**, **Flask 3+**, **SQLAlchemy 2.0**, **Pydantic**, and a responsive **Vanilla CSS Design System**.
 
@@ -11,7 +11,7 @@ An industry-standard, full-stack multi-resource court reservation and complex ma
 
 ## 🌐 Live Production Deployment
 
-👉 **Live URL**: *(Deploying to Vercel — Link coming soon)*
+👉 **Live URL**: **[https://court-book-pro-r6oj.vercel.app](https://court-book-pro-r6oj.vercel.app)**
 
 ### ⚡ Quick Demo Credentials
 

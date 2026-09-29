@@ -44,4 +44,4 @@ echo "👤 Default Admin:  admin / Admin@123456"
 echo "=========================================================="
 
 # 6. Start the Application Server
-exec python app.py
+exec python run.py
