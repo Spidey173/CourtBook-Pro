@@ -57,14 +57,23 @@ class BaseConfig:
 DEFAULT_DB_URL = "postgresql://neondb_owner:npg_Bl8N7dLaqmgx@ep-twilight-water-axohm68w-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
 
+def _normalize_db_url(url: str) -> str:
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+    return url
+
+
 class DevelopmentConfig(BaseConfig):
     """Development configuration."""
     DEBUG = True
     TESTING = False
-    db_url = os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI') or DEFAULT_DB_URL
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    SQLALCHEMY_DATABASE_URI = db_url
+    SQLALCHEMY_DATABASE_URI = _normalize_db_url(
+        os.environ.get('DATABASE_URL') or os.environ.get('SQLALCHEMY_DATABASE_URI') or DEFAULT_DB_URL
+    )
 
 
 class TestingConfig(BaseConfig):
@@ -83,10 +92,9 @@ class ProductionConfig(BaseConfig):
     TESTING = False
     SESSION_COOKIE_SECURE = True  # Enforce HTTPS cookies in production
     
-    db_url = os.environ.get('DATABASE_URL') or DEFAULT_DB_URL
-    if db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
-    SQLALCHEMY_DATABASE_URI = db_url
+    SQLALCHEMY_DATABASE_URI = _normalize_db_url(
+        os.environ.get('DATABASE_URL') or DEFAULT_DB_URL
+    )
 
 
 config_by_name = {
