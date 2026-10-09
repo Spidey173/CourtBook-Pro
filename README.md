@@ -1,63 +1,61 @@
-# 🏸 CourtBook Pro — Enterprise Sports Court Booking Platform
+# 🏸 CourtBook Pro — Full-Stack Sports Court Booking System
 
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-court--book--pro--r6oj.vercel.app-black?style=for-the-badge&logo=vercel)](https://court-book-pro-r6oj.vercel.app)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
-[![PostgreSQL](https://img.shields.io/badge/Neon%20PostgreSQL-AWS%20Cloud-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20Serverless-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
+[![Tests](https://img.shields.io/badge/Tests-37%20Passed-success?style=for-the-badge&logo=pytest)](https://github.com/Spidey173/CourtBook-Pro)
 
-An industry-standard, full-stack multi-resource court reservation and complex management platform built with **Python**, **Flask 3+**, **SQLAlchemy 2.0**, **Pydantic**, and a responsive **Vanilla CSS Design System**.
+A full-stack court booking and resource management system built with **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**. Features atomic multi-slot reservation logic, dynamic rule-based pricing, role-based access control, and an interactive customer & admin dashboard.
 
 ---
 
-## 🌐 Live Production Deployment
+## 🌐 Live Demo & Credentials
 
-👉 **Live URL**: **[https://court-book-pro-r6oj.vercel.app](https://court-book-pro-r6oj.vercel.app)**
+👉 **Production URL**: **[https://court-book-pro-r6oj.vercel.app](https://court-book-pro-r6oj.vercel.app)**
 
-### ⚡ Quick Demo Credentials
+### Test Accounts
 
-| Role | Username | Password | Access Area |
+| Role | Username | Password | Accessible Features |
 | :--- | :--- | :--- | :--- |
-| **👑 Admin** | `admin` | `Admin@123456` | Full Access: Operations Console, Courts, Coaches, Stock, Pricing & Master Bookings |
-| **🏸 Player** | `demo_user` | `Demo@123456` | Player Access: Court Reservation Hub & Match History |
+| **Admin** | `admin` | `Admin@123456` | Operations dashboard, court/coach/equipment CRUD, pricing rules, booking logs |
+| **Player** | `demo_user` | `Demo@123456` | Court availability browser, multi-resource checkout, match history |
 
-*(You can also use the 1-Click Quick Login buttons on the login page)*
-
----
-
-## 🌟 Key Highlights & Enterprise Architecture
-
-*   **🔒 Concurrency-Safe Physical Slot Locking**: Prevents race conditions and double-booking on multi-hour reservations via unique database constraints on individual atomic hourly slots (`booking_slots`).
-*   **💰 Authoritative Server-Side Pricing Engine**: Dynamic pricing logic (Peak Hours, Weekend Multipliers, Indoor Surcharges, Multi-Hour Discounts, and Equipment Bundle Discounts) is calculated and enforced strictly on the backend, preventing client-side price tampering.
-*   **🏗️ Layered Architecture & Application Factory**: Strict separation of concerns (Routers $\rightarrow$ Schemas $\rightarrow$ Domain Services $\rightarrow$ ORM Models).
-*   **🛡️ Robust Security & Access Control**:
-    *   Argon2/PBKDF2 password hashing with strict length/complexity rules.
-    *   CSRF protection across all forms and JSON API endpoints (`X-CSRFToken`).
-    *   Rate limiting on sensitive endpoints via `Flask-Limiter`.
-    *   Secure admin provisioning via CLI (`python cli.py create-admin`).
-*   **🗄️ Cross-Database Compatible & Versioned Migrations**:
-    *   Database-agnostic queries supporting both **SQLite** (local development) and **PostgreSQL** (production).
-    *   Automated schema migrations powered by **Flask-Migrate** (Alembic).
-*   **🧪 Automated Testing Suite**: Complete unit, integration, and security test coverage with **Pytest**.
-*   **🎨 Glassmorphic Custom Design System**: Clean, responsive UI with live pricing breakdowns, time-chip selectors, and executive analytics KPI dashboards.
+*(Or use the 1-Click Quick Login buttons on the login screen.)*
 
 ---
 
-## 🏛️ System Architecture
+## 💡 Key Engineering Features
+
+*   **Conflict-Free Slot Allocation**: Multi-hour bookings break into individual hourly slot records (`BookingSlot`) protected by a database-level composite unique constraint `(court_id, date, time_slot)` to prevent double-booking.
+*   **Server-Side Pricing Engine**: Pricing is computed strictly on the backend (`PricingService`) using configurable business rules (base price, peak-hour multipliers, weekend rates, equipment add-ons, coach fees, and multi-hour discounts), preventing client-side tampering.
+*   **Layered Application Architecture**: Organized using Flask Application Factory pattern with clean separation across Blueprints (Routes) $\rightarrow$ Pydantic validation $\rightarrow$ Domain Services $\rightarrow$ SQLAlchemy ORM models.
+*   **Authentication & Security**:
+    *   Secure password hashing via Werkzeug (`scrypt` / `pbkdf2:sha256`).
+    *   Session-based authentication with `Flask-Login` and role verification decorators (`@admin_required`).
+    *   CSRF token protection on form posts and API requests (`X-CSRFToken`).
+    *   Endpoint rate-limiting via `Flask-Limiter`.
+*   **Multi-Database Ready**: Runs with in-memory SQLite for instant local test execution and Serverless PostgreSQL (Neon) with connection pooling in production.
+*   **Automated Pytest Suite**: 37 automated tests covering authorization, booking conflict scenarios, pricing calculations, and admin APIs.
+
+---
+
+## 🏗️ Architecture & Data Flow
 
 ```mermaid
 graph TD
-    Client[Modern Web UI / API Client] -->|CSRF + Rate Limited| Blueprints[Flask Blueprints]
+    Client[Web UI / REST Client] -->|CSRF + Session / Rate Limit| Blueprints[Flask Blueprints]
     Blueprints --> Schemas[Pydantic Validation Layer]
     Schemas --> Services[Domain Services]
     
-    subgraph Domain Services
-        PricingService[Pricing Engine]
-        BookingService[Atomic Booking Orchestrator]
-        AvailabilityService[Availability Engine]
-        AnalyticsService[Cross-DB Analytics Engine]
+    subgraph Services Layer
+        BookingService[BookingService: Slot & Inventory Validation]
+        PricingService[PricingService: Dynamic Rate Calculation]
+        AvailabilityService[AvailabilityService: Schedule Checks]
+        AnalyticsService[AnalyticsService: SQL KPI Aggregation]
     end
     
-    Services --> DB[(SQLAlchemy ORM + Alembic Migrations)]
+    Services --> DB[(SQLAlchemy ORM / PostgreSQL & SQLite)]
 ```
 
 ---
@@ -65,95 +63,92 @@ graph TD
 ## 📂 Project Structure
 
 ```
-Sports Court Booking Platform/
+CourtBook-Pro/
 ├── app/
 │   ├── __init__.py            # Application factory (create_app)
-│   ├── config.py              # Environment configuration classes
-│   ├── extensions.py          # Initialized Flask extensions
+│   ├── config.py              # Environment configuration (Dev, Test, Prod)
+│   ├── extensions.py          # Flask extension instances (DB, Login, CSRF, Limiter)
 │   ├── models/                # SQLAlchemy ORM Models
-│   │   ├── user.py
-│   │   ├── court.py
-│   │   ├── equipment.py
-│   │   ├── coach.py
-│   │   ├── booking.py         # Booking, BookingSlot, BookingEquipment
-│   │   └── pricing_rule.py
+│   │   ├── user.py            # User account & authentication
+│   │   ├── court.py           # Court definitions
+│   │   ├── equipment.py       # Equipment inventory
+│   │   ├── coach.py           # Coach profiles & rates
+│   │   ├── booking.py         # Booking, BookingSlot (locks), BookingEquipment
+│   │   └── pricing_rule.py    # Configurable pricing rules
 │   ├── schemas/               # Pydantic input validation schemas
 │   ├── services/              # Domain business logic
-│   │   ├── pricing_service.py
-│   │   ├── booking_service.py
-│   │   ├── availability_service.py
-│   │   └── analytics_service.py
+│   │   ├── pricing_service.py # Dynamic pricing calculations
+│   │   ├── booking_service.py # Atomic booking & conflict checks
+│   │   ├── availability_service.py # Real-time slot availability
+│   │   └── analytics_service.py   # Dashboard KPI metrics
 │   ├── blueprints/            # Route controllers
-│   │   ├── auth/              # Authentication & user profile
-│   │   ├── main/              # Customer views
-│   │   ├── admin/             # Admin management views
-│   │   └── api/               # RESTful v1 JSON API
-│   └── utils/                 # Decorators, errors, responses
-├── migrations/                # Alembic database migration scripts
-├── static/
-│   ├── css/design_system.css  # Unified design tokens & components
-│   └── js/
-│       ├── api_client.js      # Fetch client with auto-CSRF
-│       ├── booking.js         # Interactive customer booking flow
-│       └── admin.js           # Admin management & live charts
-├── templates/                 # Modular Jinja2 templates
-│   ├── base.html
-│   ├── home.html
-│   ├── login.html
-│   ├── signup.html
-│   └── admin_dashboard.html
-├── tests/                     # Pytest automated test suite
-├── cli.py                     # Management CLI commands
-├── run.py                     # WSGI / Dev entry point
-├── api/                       # Vercel serverless function entry point
-│   └── index.py
-├── vercel.json                # Vercel deployment routing configuration
-└── requirements.txt           # Pinned production dependencies
+│   │   ├── auth/              # Login, register, logout
+│   │   ├── main/              # User-facing reservation UI
+│   │   ├── admin/             # Facility management & KPIs
+│   │   └── api/               # JSON REST API endpoints
+│   └── utils/                 # Decorators, error handlers, JSON helpers
+├── migrations/                # Alembic schema migration scripts
+├── static/                    # CSS design tokens, icons, and Vanilla JS clients
+├── templates/                 # Jinja2 templates (Customer UI & Admin console)
+├── tests/                     # Pytest automated test suite (37 tests)
+├── cli.py                     # CLI utilities (db init, data seeding, admin creation)
+├── run.py                     # Local development server entry point
+├── api/index.py               # Vercel serverless entry point
+├── vercel.json                # Vercel deployment routes configuration
+└── requirements.txt           # Python dependencies
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started Locally
 
 ### 1. Prerequisites
-*   Python 3.10+ installed on your system.
+*   Python 3.10 or higher
+*   Git
 
-### 2. Environment Setup
+### 2. Setup Virtual Environment
 ```bash
-# 1. Create and activate a virtual environment
+# Clone the repository
+git clone https://github.com/Spidey173/CourtBook-Pro.git
+cd CourtBook-Pro
+
+# Create and activate a virtual environment
 python3 -m venv .venv
 source .venv/bin/activate       # On Windows: .venv\Scripts\activate
 
-# 2. Install dependencies
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. Database Initialization & Seeding
+### 3. Initialize Database & Seed Sample Data
 ```bash
-# Initialize tables and seed initial courts, equipment, coaches, and pricing rules
+# Create tables and load sample courts, coaches, equipment & pricing rules
 python cli.py init-db
 python cli.py seed-data
 
-# Create or configure an Administrator account
+# Optional: Create custom admin account (default demo accounts already included in seed)
 python cli.py create-admin --username admin --email admin@courtbook.com --password Admin@123456
 ```
 
-### 4. Running the Application
+### 4. Run the Development Server
 ```bash
-# Start local development server
-python app.py
+python run.py
 ```
 👉 Open **[http://127.0.0.1:5000](http://127.0.0.1:5000)** in your browser.
 
 ---
 
-## 🧪 Running Automated Tests
+## 🧪 Testing
 
-Run the complete Pytest test suite:
+Run the automated test suite with Pytest:
 ```bash
 pytest tests/ -v
 ```
-All 37 unit, transaction, pricing math, API, and admin tests will execute against an isolated in-memory test database.
+All **37 tests** execute in an isolated in-memory SQLite database, verifying:
+*   Authentication flows & duplicate user protection
+*   Booking slot creation and double-booking conflict prevention
+*   Dynamic pricing formulas across peak hours, weekends, and discounts
+*   Role-based admin access control and CRUD endpoints
 
 ---
 
@@ -161,15 +156,15 @@ All 37 unit, transaction, pricing math, API, and admin tests will execute agains
 
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/api/v1/courts` | List all active courts |
-| `GET` | `/api/v1/equipment` | List equipment items & live inventory |
-| `GET` | `/api/v1/coaches` | List registered coaches |
-| `GET` | `/api/v1/timeslots` | List standard booking hours |
-| `GET` | `/api/v1/pricing-rules` | Get dynamic pricing rule configuration |
-| `GET` | `/api/v1/availability` | Query court, coach, and equipment availability |
-| `POST` | `/api/v1/calculate-price` | Preview authoritative price breakdown |
-| `GET` | `/api/v1/bookings` | Retrieve user's booking history |
-| `POST` | `/api/v1/bookings` | Create a new multi-resource booking |
-| `POST` | `/api/v1/bookings/<id>/cancel` | Cancel an active booking and release slot locks |
-| `GET` | `/api/v1/admin/stats` | Retrieve executive analytics and KPI counters |
-| `GET` | `/api/v1/admin/reports/revenue` | Get monthly revenue and customer spending reports |
+| `GET` | `/api/v1/courts` | List active courts |
+| `GET` | `/api/v1/equipment` | List equipment items & available stock |
+| `GET` | `/api/v1/coaches` | List active coaches and hourly rates |
+| `GET` | `/api/v1/timeslots` | List operating booking time slots |
+| `GET` | `/api/v1/pricing-rules` | Retrieve active pricing rules |
+| `GET` | `/api/v1/availability` | Check court, coach, and equipment availability for a date |
+| `POST` | `/api/v1/calculate-price` | Preview itemized price calculation |
+| `GET` | `/api/v1/bookings` | Fetch booking history for authenticated user |
+| `POST` | `/api/v1/bookings` | Create a new booking reservation |
+| `POST` | `/api/v1/bookings/<id>/cancel` | Cancel booking and release slot locks |
+| `GET` | `/api/v1/admin/stats` | Admin dashboard overview metrics (Admin only) |
+| `GET` | `/api/v1/admin/reports/revenue` | Monthly revenue and booking summary (Admin only) |
