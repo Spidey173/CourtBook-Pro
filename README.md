@@ -1,33 +1,60 @@
 # 🏸 CourtBook Pro — Full-Stack Sports Court Booking System
 
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-court--book--pro--r6oj.vercel.app-black?style=for-the-badge&logo=vercel)](https://court-book-pro-r6oj.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-courtbookpro.vercel.app-black?style=for-the-badge&logo=vercel)](https://courtbookpro.vercel.app)
+[![CI Pipeline](https://img.shields.io/badge/CI-GitHub%20Actions-blue?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/Spidey173/CourtBook-Pro/actions)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20Serverless-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
 [![Tests](https://img.shields.io/badge/Tests-37%20Passed-success?style=for-the-badge&logo=pytest)](https://github.com/Spidey173/CourtBook-Pro)
 
-A full-stack court booking and resource management system built with **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**. Features atomic multi-slot reservation logic, dynamic rule-based pricing, role-based access control, and an interactive customer & admin dashboard.
+A full-stack court booking and resource management system built with **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**. Engineered with rigorous **database-level concurrency controls and atomic slot reservations** to prevent race conditions and double-bookings under concurrent traffic, alongside dynamic rule-based pricing, role-based access control, and an interactive customer & admin dashboard.
 
 ---
 
-## 🌐 Live Demo & Credentials
+## 🌐 Live Demo & Disposable Sandbox Credentials
 
-👉 **Production URL**: **[https://court-book-pro-r6oj.vercel.app](https://court-book-pro-r6oj.vercel.app)**
+👉 **Production URL**: **[https://courtbookpro.vercel.app](https://courtbookpro.vercel.app)**
 
-### Test Accounts
+> [!NOTE]
+> **Ephemeral Demo Environment**: The credentials listed below provide access to a restricted, disposable demo sandbox populated with mock data. Production secrets, user records, and cloud infrastructure controls are strictly decoupled and inaccessible from demo roles.
 
-| Role | Username | Password | Accessible Features |
+### Sandbox Accounts
+
+| Role | Username | Password | Scope & Permitted Actions |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `Admin@123456` | Operations dashboard, court/coach/equipment CRUD, pricing rules, booking logs |
-| **Player** | `demo_user` | `Demo@123456` | Court availability browser, multi-resource checkout, match history |
+| **Demo Admin** | `admin` | `Admin@123456` | Sandbox preview of facility metrics, mock resource CRUD, demo pricing rules |
+| **Demo Player** | `demo_user` | `Demo@123456` | Court availability browser, multi-resource checkout simulation, booking history |
 
 *(Or use the 1-Click Quick Login buttons on the login screen.)*
 
 ---
 
+## ⚡ Concurrency & Double-Booking Protection
+
+Standard booking systems frequently suffer from race conditions when two users reserve overlapping slots simultaneously. CourtBook Pro implements a multi-tier concurrency protection architecture:
+
+```
+[User A: 09:00 - 11:00] \
+                         ==> [BookingService: Atomic Transaction] ==> [DB Engine: uq_court_date_slot]
+[User B: 10:00 - 12:00] /                                                ├── Slot 09:00 -> SUCCESS (Locked)
+                                                                         ├── Slot 10:00 -> CONFLICT (Unique Violation)
+                                                                         └── ROLLBACK Transaction (User B informed)
+```
+
+1. **Discrete Slot Atomicity (`BookingSlot` Locks)**:
+   - When a multi-hour reservation is requested, it is decomposed into atomic 1-hour physical lock units (`BookingSlot`).
+   - A database-enforced composite unique constraint `uq_court_date_slot(court_id, date, time_slot)` guarantees that no two transactions can lock the same court-hour combination regardless of execution timing.
+2. **Transaction Isolation & Safe Rollback**:
+   - Reservations execute within single atomic SQLAlchemy / PostgreSQL transactions with immediate flush.
+   - If a race condition occurs, the database engine triggers an `IntegrityError`, immediately executing `db.session.rollback()` and returning a graceful `409 Conflict` (`BookingConflictError`) to the user.
+3. **Multi-Resource Availability Verification**:
+   - Pre-commit guards verify real-time availability across coaches (`idx_coach_slots`) and equipment stock levels before slot locking begins.
+
+---
+
 ## 💡 Key Engineering Features
 
-*   **Conflict-Free Slot Allocation**: Multi-hour bookings break into individual hourly slot records (`BookingSlot`) protected by a database-level composite unique constraint `(court_id, date, time_slot)` to prevent double-booking.
+*   **Concurrency-Safe Multi-Slot Engine**: Multi-hour bookings break into individual hourly slot records (`BookingSlot`) protected by database unique constraints to guarantee zero double-bookings under concurrent traffic.
 *   **Server-Side Pricing Engine**: Pricing is computed strictly on the backend (`PricingService`) using configurable business rules (base price, peak-hour multipliers, weekend rates, equipment add-ons, coach fees, and multi-hour discounts), preventing client-side tampering.
 *   **Layered Application Architecture**: Organized using Flask Application Factory pattern with clean separation across Blueprints (Routes) $\rightarrow$ Pydantic validation $\rightarrow$ Domain Services $\rightarrow$ SQLAlchemy ORM models.
 *   **Authentication & Security**:
@@ -36,7 +63,7 @@ A full-stack court booking and resource management system built with **Python**,
     *   CSRF token protection on form posts and API requests (`X-CSRFToken`).
     *   Endpoint rate-limiting via `Flask-Limiter`.
 *   **Multi-Database Ready**: Runs with in-memory SQLite for instant local test execution and Serverless PostgreSQL (Neon) with connection pooling in production.
-*   **Automated Pytest Suite**: 37 automated tests covering authorization, booking conflict scenarios, pricing calculations, and admin APIs.
+*   **Automated Pytest Suite & CI**: 37 automated tests covering authorization, race-condition slot conflicts, pricing rules, and admin operations running in GitHub Actions CI.
 
 ---
 

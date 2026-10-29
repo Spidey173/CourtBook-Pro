@@ -54,7 +54,7 @@ class BaseConfig:
 
 
 
-DEFAULT_DB_URL = "postgresql://neondb_owner:npg_Bl8N7dLaqmgx@ep-twilight-water-axohm68w-pooler.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DEFAULT_DB_URL = "sqlite:///courtbook.db"
 
 
 def _normalize_db_url(url: str) -> str:
