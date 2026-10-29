@@ -94,12 +94,37 @@ def get_bootstrap():
     def _load_rules():
         rules = PricingRule.query.filter_by(enabled=True).all()
         rules_dict = {}
-        for r in rules:
-            try:
-                val = float(r.value)
-                rules_dict[r.name] = int(val) if val.is_integer() else val
-            except (ValueError, TypeError):
-                rules_dict[r.name] = r.value
+        for rule in rules:
+            if rule.rule_type == 'peak_hours':
+                rules_dict['peakHours'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier,
+                    'start': rule.start_time or '18:00',
+                    'end': rule.end_time or '21:00',
+                    'applyDays': rule.apply_days
+                }
+            elif rule.rule_type == 'weekend':
+                rules_dict['weekend'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier
+                }
+            elif rule.rule_type == 'indoor':
+                rules_dict['indoor'] = {
+                    'enabled': rule.enabled,
+                    'multiplier': rule.multiplier
+                }
+            elif rule.rule_type == 'multiple_hours':
+                rules_dict['multipleHours'] = {
+                    'enabled': rule.enabled,
+                    'discountPerHour': rule.discount,
+                    'discount': rule.discount
+                }
+            elif rule.rule_type == 'bundle':
+                rules_dict['bundle'] = {
+                    'enabled': rule.enabled,
+                    'discount': rule.discount,
+                    'minItems': rule.min_items or 3
+                }
         return rules_dict
 
     pricing_rules = get_cached_resource('pricing_rules_active_list', _load_rules)
