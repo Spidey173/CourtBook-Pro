@@ -77,3 +77,4 @@ def test_booking_stores_explicit_utc_timestamps(seed_test_data, normal_user):
     for s in slots:
         assert s.start_time_utc is not None
         assert s.end_time_utc is not None
+

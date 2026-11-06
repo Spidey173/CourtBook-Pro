@@ -1,5 +1,6 @@
 """Authentication Blueprint Routes."""
-from flask import Blueprint, render_template, redirect, url_for, request, jsonify
+import os
+from flask import Blueprint, redirect, url_for, request, jsonify, send_from_directory, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import generate_csrf
 from app.extensions import db, limiter
@@ -12,6 +13,7 @@ auth_bp = Blueprint('auth', __name__)
 
 
 @auth_bp.route('/csrf-token', methods=['GET'])
+@auth_bp.route('/auth/csrf-token', methods=['GET'])
 def get_csrf_token():
     """Returns a fresh CSRF token for AJAX / JSON requests."""
     token = generate_csrf()
@@ -58,7 +60,8 @@ def login():
         else:
             return error_response("Invalid username or password", status_code=401)
 
-    return render_template('login.html')
+    dist_dir = os.path.join(current_app.static_folder, 'dist')
+    return send_from_directory(dist_dir, 'index.html')
 
 
 @auth_bp.route('/signup', methods=['GET', 'POST'])
@@ -111,7 +114,8 @@ def signup():
             status_code=201
         )
 
-    return render_template('signup.html')
+    dist_dir = os.path.join(current_app.static_folder, 'dist')
+    return send_from_directory(dist_dir, 'index.html')
 
 
 @auth_bp.route('/logout', methods=['GET', 'POST'])

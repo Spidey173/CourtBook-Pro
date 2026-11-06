@@ -68,3 +68,4 @@ def is_slot_in_past(
     """
     start_utc, _ = slot_to_utc_range(booking_date, time_slot, 1, tz_name)
     return start_utc < get_current_utc_time()
+

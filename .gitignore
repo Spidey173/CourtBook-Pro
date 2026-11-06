@@ -30,6 +30,10 @@ htmlcov/
 *.swp
 *.swo
 
+# Node / Frontend Build
+node_modules/
+/dist/
+
 # Vercel
 .vercel/
 .vercel

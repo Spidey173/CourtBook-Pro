@@ -20,3 +20,4 @@ ENV FLASK_ENV=development
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "run.py"]
+

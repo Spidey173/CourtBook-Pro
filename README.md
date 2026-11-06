@@ -90,21 +90,25 @@ CourtBook Pro eliminates SQLite divergence by enforcing PostgreSQL across all en
 
 ---
 
-## 🎨 Modern Frontend Architecture & Client-Side Reactivity
+## 🎨 Decoupled Next.js-Caliber Frontend Architecture
 
-CourtBook Pro includes a modern reactive frontend layer engineered for speed, type safety, and seamless UX:
+CourtBook Pro features a modern, component-driven Single-Page Application (SPA) designed to rival enterprise Next.js platforms, cleanly decoupled from the Flask REST backend:
 
-*   **Reactive State Store (`ReactiveBookingStore`)**:
-    - Built with a modern JavaScript `Proxy` publish/subscribe store that decouples state changes from imperative DOM manipulation.
-    - Component subscribers automatically react to changes in court selection, duration, time slots, coaches, and equipment inventory.
-*   **Client-Side Optimistic Updates with Atomic Rollback**:
-    - **Instant Slot Locking**: Selecting and reserving a slot immediately locks the slot in the UI with a glowing pulse state (`⚡ Reserving...`) and decrements local equipment stock without waiting for network latency.
-    - **Automatic State Rollback**: If a concurrent user claims the slot first or a 409 conflict occurs, the store restores the pre-transaction snapshot, re-enables the slots, and displays an actionable conflict notification.
-    - **Optimistic Match Cancellation**: Cancelling a booking instantly updates the match row to `⏳ Releasing...` and frees the court slot in the local grid, rolling back if the request fails.
-*   **Zero-Latency Client-Side Pricing Calculation**:
-    - Pre-calculates exact itemized subtotal (base rate, peak multipliers, weekend surcharges, and bundle discounts) in **0ms** before authoritative backend confirmation.
-*   **TypeScript Type Safety (`static/types/courtbook.d.ts`)**:
-    - Full TypeScript declarations and strict JSDoc annotations across all client modules, providing autocomplete and compile-time contract safety.
+*   **Next.js Design System & Micro-Interactions**:
+    - **Palette & Tokens**: Deep zinc/slate dark mode palette (`#09090b` to `#18181b`) accented with championship glowing orange (`#f97316`) and emerald status pills.
+    - **Typography**: Dual modern font pairing using **Outfit** (headings, scorecards) and **Plus Jakarta Sans** (data tables, numeric slots).
+    - **Glassmorphic Surface Elevation**: Cards and sticky estimation bars utilize `backdrop-filter: blur(16px)` with layered translucent borders (`rgba(255, 255, 255, 0.08)`).
+*   **Decoupled React 19 + TypeScript Component Architecture**:
+    - **`CourtReservationHub.tsx`**: Interactive multi-resource booking hub with quick date selector pills, visual surface badges (Indoor Hardcourt vs Outdoor Clay/Grass), morning/afternoon/peak evening slot matrix, certified ATP trainer assignment, and live equipment inventory counters.
+    - **`MatchHistory.tsx`**: Real-time match ledger with live countdown timers (`Starting in 2h`), UTC boundary timestamps, status badges (`CONFIRMED`, `COMPLETED`, `CANCELLED`), and optimistic 1-click slot cancellation with atomic state rollback.
+    - **`AdminConsole.tsx`**: Executive facility operations cockpit featuring gross revenue telemetry, active court toggles, equipment stock management, coach roster configuration, dynamic pricing rule adjustments, and complete audit ledger.
+    - **`AuthModal.tsx`**: Tabbed modal authentication with instantaneous 1-click sandbox demo switches (`Demo Admin` / `Demo Player`) and CSRF token negotiation.
+    - **`Toast.tsx`**: Global glassmorphic notification dispenser for transactional feedback and conflict alerts.
+*   **Client-Side Optimistic Updates & Reactive Rollback**:
+    - Slot booking and match cancellations reflect immediately in client state for zero perceived latency.
+    - If a race condition occurs or the backend returns `409 Conflict`, the UI automatically performs state rollback, releases locked slots, and notifies the user with the server explanation.
+*   **Live Pricing Breakdown Engine**:
+    - Reactive itemized subtotal (base court rate, peak hour multiplier, weekend rates, coach fees, and equipment bundle discounts) calculates dynamically on every state tick before final booking confirmation.
 
 ---
 
