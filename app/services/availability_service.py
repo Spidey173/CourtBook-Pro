@@ -161,6 +161,8 @@ class AvailabilityService:
         return {
             'booked_time_slots': booked_court_slots,
             'booked_courts': booked_court_slots,
+            'booked_slots': booked_court_slots,
+            'coach_booked_slots': booked_coach_slots,
             'booked_coaches': list(booked_coach_slots.keys()),
             'equipment_availability': eq_availability
         }

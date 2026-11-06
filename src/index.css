@@ -262,3 +262,272 @@ h1, h2, h3, h4, h5, h6 {
   background: #3f3f46;
 }
 
+/* 7-Day Horizontal Date Carousel */
+.date-carousel-container {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  margin-top: 10px;
+}
+
+.date-card {
+  flex: 1;
+  min-width: 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  position: relative;
+}
+
+.date-card:hover {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.05);
+  transform: translateY(-2px);
+}
+
+.date-card.active {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.1) 100%);
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 1px var(--orange-primary), 0 6px 20px -2px var(--orange-glow);
+  transform: translateY(-2px);
+}
+
+.date-card .day-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+.date-card.active .day-label {
+  color: #fb923c;
+}
+
+.date-card .day-number {
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-family: var(--font-heading);
+  color: #ffffff;
+  margin: 2px 0;
+  line-height: 1.1;
+}
+
+.date-card .month-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.date-card .weekend-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.6rem;
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  padding: 1px 5px;
+  border-radius: 6px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Duration Selector Segmented Grid */
+.duration-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+
+@media (max-width: 640px) {
+  .duration-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.duration-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+  text-align: center;
+}
+
+.duration-pill:hover {
+  border-color: rgba(249, 115, 22, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.duration-pill.active {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.22) 0%, rgba(234, 88, 12, 0.1) 100%);
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 1px var(--orange-primary), 0 4px 18px var(--orange-glow);
+}
+
+.duration-pill .duration-title {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.duration-pill .duration-sub {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.duration-pill.active .duration-sub {
+  color: #fed7aa;
+}
+
+/* Championship Court Card */
+.court-item-card {
+  background: rgba(24, 24, 27, 0.75);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.court-item-card:hover {
+  border-color: rgba(249, 115, 22, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+}
+
+.court-item-card.active {
+  border-color: var(--orange-primary) !important;
+  background: linear-gradient(145deg, rgba(249, 115, 22, 0.1) 0%, rgba(24, 24, 27, 0.95) 100%);
+  box-shadow: 0 0 0 1px var(--orange-primary), 0 8px 28px -4px var(--orange-glow);
+  transform: translateY(-2px);
+}
+
+/* Time Slot Modern Grid */
+.slot-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.slot-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.16s ease;
+  user-select: none;
+}
+
+.slot-item:hover:not(.slot-disabled) {
+  border-color: var(--orange-primary);
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.slot-item.active {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%) !important;
+  border-color: #f97316 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 16px var(--orange-glow);
+  transform: scale(1.02);
+}
+
+.slot-item.active .slot-price-tag {
+  color: #fff7ed !important;
+}
+
+.slot-item.slot-disabled {
+  opacity: 0.35;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.slot-item .slot-time {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #ffffff;
+}
+
+.slot-item.slot-disabled .slot-time {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.slot-item .slot-price-tag {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Sticky Match Receipt */
+.receipt-card {
+  background: rgba(20, 20, 24, 0.85);
+  border: 1px solid var(--border-subtle);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(20px);
+  position: sticky;
+  top: 86px;
+}
+
+.receipt-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  padding: 6px 0;
+}
+
+.receipt-line.receipt-discount {
+  color: #34d399;
+}
+
+.receipt-line.receipt-total {
+  border-top: 1px dashed rgba(255, 255, 255, 0.14);
+  padding-top: 14px;
+  margin-top: 10px;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.live-pulse {
+  animation: pulseGlow 1.8s infinite;
+}
+

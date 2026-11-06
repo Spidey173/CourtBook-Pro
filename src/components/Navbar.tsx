@@ -78,67 +78,84 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Center Navigation Tabs (when logged in) */}
-        {user && (
-          <nav
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'rgba(255, 255, 255, 0.04)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 12,
-              padding: 4,
-              gap: 4,
-            }}
+        {/* Center Navigation Tabs */}
+        <nav
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            background: 'rgba(255, 255, 255, 0.04)',
+            border: '1px solid var(--border-subtle)',
+            borderRadius: 12,
+            padding: 4,
+            gap: 4,
+          }}
+        >
+          <button
+            onClick={() => onSelectTab('book')}
+            className={`btn-next btn-next-sm ${activeTab === 'book' ? 'btn-next-primary' : 'btn-next-secondary'}`}
+            style={{ border: 'none' }}
           >
+            <Calendar size={15} />
+            <span>Court Reservation</span>
+          </button>
+          <button
+            onClick={() => onSelectTab('history')}
+            className={`btn-next btn-next-sm ${activeTab === 'history' ? 'btn-next-primary' : 'btn-next-secondary'}`}
+            style={{ border: 'none' }}
+          >
+            <Clock size={15} />
+            <span>Match Ledger</span>
+          </button>
+          {(user?.is_admin || user?.isAdmin) ? (
             <button
-              onClick={() => onSelectTab('book')}
-              className={`btn-next btn-next-sm ${activeTab === 'book' ? 'btn-next-primary' : 'btn-next-secondary'}`}
+              onClick={() => onSelectTab('admin')}
+              className={`btn-next btn-next-sm ${activeTab === 'admin' ? 'btn-next-primary' : 'btn-next-secondary'}`}
               style={{ border: 'none' }}
             >
-              <Calendar size={15} />
-              <span>Court Reservation</span>
+              <Shield size={15} />
+              <span>Facility Command</span>
             </button>
+          ) : (
             <button
-              onClick={() => onSelectTab('history')}
-              className={`btn-next btn-next-sm ${activeTab === 'history' ? 'btn-next-primary' : 'btn-next-secondary'}`}
-              style={{ border: 'none' }}
+              onClick={() => onSelectTab('admin')}
+              className="btn-next btn-next-sm btn-next-secondary"
+              style={{ border: 'none', opacity: 0.8 }}
+              title="Admin access required (or use Demo Admin)"
             >
-              <Clock size={15} />
-              <span>My Matches</span>
+              <Shield size={15} />
+              <span>Facility Command</span>
             </button>
-            {user.is_admin && (
-              <button
-                onClick={() => onSelectTab('admin')}
-                className={`btn-next btn-next-sm ${activeTab === 'admin' ? 'btn-next-primary' : 'btn-next-secondary'}`}
-                style={{ border: 'none' }}
-              >
-                <Shield size={15} />
-                <span>Operations Console</span>
-              </button>
-            )}
-          </nav>
-        )}
+          )}
+        </nav>
 
         {/* Right Action / Auth Group */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {user ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 10,
-                  background: 'rgba(255, 255, 255, 0.03)',
+                  gap: 8,
+                  background: 'rgba(255, 255, 255, 0.04)',
                   border: '1px solid var(--border-subtle)',
                   borderRadius: 10,
-                  padding: '6px 12px',
+                  padding: '5px 12px',
                 }}
               >
-                <span className={`badge-next ${user.is_admin ? 'badge-next-orange' : 'badge-next-emerald'}`}>
-                  {user.is_admin ? 'Admin' : 'Player'}
+                <div
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: (user.is_admin || user.isAdmin) ? '#f97316' : '#10b981',
+                    boxShadow: (user.is_admin || user.isAdmin) ? '0 0 8px #f97316' : '0 0 8px #10b981',
+                  }}
+                />
+                <span className={`badge-next ${(user.is_admin || user.isAdmin) ? 'badge-next-orange' : 'badge-next-emerald'}`} style={{ fontSize: '0.7rem' }}>
+                  {(user.is_admin || user.isAdmin) ? 'Admin' : 'Player'}
                 </span>
-                <span style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {user.username}
                 </span>
               </div>
@@ -148,8 +165,8 @@ export const Navbar: React.FC<NavbarProps> = ({
                 className="btn-next btn-next-danger btn-next-sm"
                 title="Sign out of arena session"
               >
-                <LogOut size={15} />
-                <span>Logout</span>
+                <LogOut size={14} />
+                <span>Sign Out</span>
               </button>
             </div>
           ) : (
@@ -175,7 +192,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
 
               <button onClick={onOpenAuth} className="btn-next btn-next-primary btn-next-sm">
-                <UserIcon size={15} />
+                <UserIcon size={14} />
                 <span>Sign In</span>
               </button>
             </div>

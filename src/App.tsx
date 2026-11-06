@@ -6,25 +6,15 @@ import { AuthModal } from './components/AuthModal';
 import { CourtReservationHub } from './components/CourtReservationHub';
 import { MatchHistory } from './components/MatchHistory';
 import { AdminConsole } from './components/AdminConsole';
-import { Toast, ToastMessage } from './components/Toast';
+import { useToast } from './components/Toast';
 import { Trophy, ShieldCheck, Github, Zap } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'book' | 'history' | 'admin'>('book');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [initializing, setInitializing] = useState<boolean>(true);
-
-  // Global toast dispenser
-  const showToast = (type: ToastMessage['type'], titleOrMessage: string, description?: string) => {
-    const id = Date.now().toString() + Math.random().toString(36).substring(2, 7);
-    setToasts((prev) => [...prev, { id, type, message: titleOrMessage, title: titleOrMessage, description }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  const { showToast } = useToast();
 
   // Bootstrap session check
   const checkSession = async () => {
@@ -88,9 +78,6 @@ export const App: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-deep)' }}>
-      {/* Toast Notification Container */}
-      <Toast toasts={toasts} onClose={removeToast} />
-
       {/* Navigation Header */}
       <Navbar
         user={user}
@@ -109,6 +96,7 @@ export const App: React.FC = () => {
             onAuthRequired={() => setShowAuthModal(true)}
             onBookingCreated={handleBookingCreated}
             showToast={showToast}
+            onQuickDemoLogin={handleQuickDemoLogin}
           />
         )}
 

@@ -182,8 +182,13 @@ class PricingService:
         breakdown.append({
             'label': 'Final Total',
             'value': final_total,
+            'amount': final_total,
             'type': 'total'
         })
+
+        for item in breakdown:
+            if 'amount' not in item:
+                item['amount'] = item['value']
 
         return {
             'total_price': final_total,

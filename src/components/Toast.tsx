@@ -122,10 +122,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const showToast = useCallback((type: ToastType, titleOrMessage: string, description?: string) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, type, title: titleOrMessage, message: titleOrMessage, description }]);
+    setToasts((prev) => {
+      // Limit to 2 most recent toasts to avoid any clutter
+      const filtered = prev.slice(-1);
+      return [...filtered, { id, type, title: titleOrMessage, message: titleOrMessage, description }];
+    });
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, 4500);
+    }, 3500);
   }, []);
 
   const removeToast = (id: string) => {

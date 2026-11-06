@@ -121,10 +121,16 @@ export const api = {
     duration: number;
     coach_id?: number | null;
     equipment_requests?: Record<number, number>;
+    equipment?: Record<number, number>;
   }): Promise<PriceCalculation> {
+    const eq = params.equipment || params.equipment_requests || {};
     const res = await request<{ success: boolean; data: PriceCalculation }>('/api/v1/calculate-price', {
       method: 'POST',
-      body: JSON.stringify(params),
+      body: JSON.stringify({
+        ...params,
+        equipment: eq,
+        equipment_requests: eq,
+      }),
     });
     return res.data || (res as any);
   },
@@ -136,12 +142,19 @@ export const api = {
     duration: number;
     coach_id?: number | null;
     equipment_requests?: Record<number, number>;
+    equipment?: Record<number, number>;
     client_timezone?: string;
   }): Promise<any> {
+    const eq = payload.equipment || payload.equipment_requests || {};
     const tz = payload.client_timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
     return request('/api/v1/bookings', {
       method: 'POST',
-      body: JSON.stringify({ ...payload, client_timezone: tz }),
+      body: JSON.stringify({
+        ...payload,
+        equipment: eq,
+        equipment_requests: eq,
+        client_timezone: tz,
+      }),
     });
   },
 

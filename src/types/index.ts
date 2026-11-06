@@ -102,6 +102,7 @@ export interface User {
 export interface PriceBreakdownItem {
   label: string;
   amount: number;
+  value?: number;
   type: string;
 }
 

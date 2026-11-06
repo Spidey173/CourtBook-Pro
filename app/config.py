@@ -84,7 +84,7 @@ class TestingConfig(BaseConfig):
     DEBUG = False
     TESTING = True
     SQLALCHEMY_DATABASE_URI = _normalize_db_url(
-        os.environ.get('TEST_DATABASE_URL') or os.environ.get('DATABASE_URL') or 'sqlite:///:memory:'
+        os.environ.get('TEST_DATABASE_URL') or 'sqlite:///:memory:'
     )
     SQLALCHEMY_ENGINE_OPTIONS = {}
     WTF_CSRF_ENABLED = False

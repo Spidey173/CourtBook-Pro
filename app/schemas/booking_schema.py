@@ -32,6 +32,9 @@ class BookingCreateSchema(BaseModel):
             # Support coach: { id: 2 } or coach_id: 2
             if 'coach_id' not in data and 'coach' in data and isinstance(data['coach'], dict):
                 data['coach_id'] = data['coach'].get('id')
+            # Support equipment_requests
+            if 'equipment' not in data and 'equipment_requests' in data:
+                data['equipment'] = data['equipment_requests']
             # Support camelCase timeSlot
             if 'time_slot' not in data and 'timeSlot' in data:
                 data['time_slot'] = data['timeSlot']
@@ -92,6 +95,8 @@ class PriceCalculateSchema(BaseModel):
                 data['court_id'] = data['court'].get('id')
             if 'coach_id' not in data and 'coach' in data and isinstance(data['coach'], dict):
                 data['coach_id'] = data['coach'].get('id')
+            if 'equipment' not in data and 'equipment_requests' in data:
+                data['equipment'] = data['equipment_requests']
             if 'time_slot' not in data and 'timeSlot' in data:
                 data['time_slot'] = data['timeSlot']
         return data
@@ -107,6 +112,8 @@ class AvailabilityQuerySchema(BaseModel):
     @classmethod
     def normalize_fields(cls, data: Any) -> Any:
         if isinstance(data, dict):
+            if 'equipment' not in data and 'equipment_requests' in data:
+                data['equipment'] = data['equipment_requests']
             if 'time_slot' not in data and 'timeSlot' in data:
                 data['time_slot'] = data['timeSlot']
             if 'time_slot' not in data and 'time' in data:
