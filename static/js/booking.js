@@ -1,7 +1,27 @@
+/// <reference path="../types/courtbook.d.ts" />
 /**
- * Championship Booking Engine — Manga Orange Edition
+ * CourtBook Pro — Championship Reactive Booking Engine
+ * Architecture:
+ * - Reactive State Store with Proxy-driven observation & subscription
+ * - Client-Side Optimistic UI Updates with automatic state rollback on conflict
+ * - Full TypeScript / JSDoc type safety
+ * - Zero-latency client-side dynamic pricing calculation
  */
 
+/**
+ * @typedef {import('../types/courtbook').Court} Court
+ * @typedef {import('../types/courtbook').Coach} Coach
+ * @typedef {import('../types/courtbook').Equipment} Equipment
+ * @typedef {import('../types/courtbook').PricingRulesMap} PricingRulesMap
+ * @typedef {import('../types/courtbook').Booking} Booking
+ * @typedef {import('../types/courtbook').BookingState} BookingStateType
+ */
+
+/**
+ * Helper to get local date string YYYY-MM-DD
+ * @param {Date} [d=new Date()]
+ * @returns {string}
+ */
 function getLocalDateString(d = new Date()) {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -9,78 +29,214 @@ function getLocalDateString(d = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
-const bookingState = {
-    date: getLocalDateString(new Date()),
-    duration: 1,
-    selectedCourt: null,
-    selectedSlot: null,
-    selectedCoach: null,
-    equipmentRequests: {},
-    courts: [],
-    coaches: [],
-    equipment: [],
-    timeSlots: [],
-    pricingRules: {},
-    bookedCourtSlots: {},
-    equipmentAvailability: {}
-};
+/**
+ * Modern Reactive State Store with Proxy Mutation Tracking
+ */
+class ReactiveBookingStore {
+    constructor() {
+        /** @type {Map<string, Set<Function>>} */
+        this.subscribers = new Map();
+        
+        /** @type {BookingStateType} */
+        const rawState = {
+            date: getLocalDateString(new Date()),
+            duration: 1,
+            selectedCourt: null,
+            selectedSlot: null,
+            selectedCoach: null,
+            equipmentRequests: {},
+            courts: [],
+            coaches: [],
+            equipment: [],
+            timeSlots: [],
+            pricingRules: {},
+            bookedCourtSlots: {},
+            equipmentAvailability: {},
+            optimisticLock: null
+        };
 
+        const self = this;
+        this.state = new Proxy(rawState, {
+            set(target, prop, value) {
+                const oldVal = target[prop];
+                target[prop] = value;
+                if (oldVal !== value) {
+                    self._notify(String(prop), value, oldVal);
+                }
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Subscribe to state mutations
+     * @param {string} prop
+     * @param {Function} callback
+     * @returns {Function} Unsubscribe handler
+     */
+    subscribe(prop, callback) {
+        if (!this.subscribers.has(prop)) {
+            this.subscribers.set(prop, new Set());
+        }
+        this.subscribers.get(prop).add(callback);
+        return () => this.subscribers.get(prop)?.delete(callback);
+    }
+
+    /**
+     * Notify listeners of state change
+     * @private
+     */
+    _notify(prop, val, oldVal) {
+        const propListeners = this.subscribers.get(prop);
+        if (propListeners) {
+            propListeners.forEach(cb => cb(val, oldVal, prop));
+        }
+        const wildcardListeners = this.subscribers.get('*');
+        if (wildcardListeners) {
+            wildcardListeners.forEach(cb => cb(val, oldVal, prop));
+        }
+    }
+
+    /**
+     * Creates an immutable deep snapshot for optimistic rollback
+     * @returns {Object}
+     */
+    createSnapshot() {
+        return {
+            selectedSlot: this.state.selectedSlot,
+            selectedCourt: this.state.selectedCourt ? { ...this.state.selectedCourt } : null,
+            equipmentRequests: { ...this.state.equipmentRequests },
+            equipmentAvailability: { ...this.state.equipmentAvailability },
+            bookedCourtSlots: JSON.parse(JSON.stringify(this.state.bookedCourtSlots)),
+            optimisticLock: this.state.optimisticLock ? { ...this.state.optimisticLock } : null
+        };
+    }
+
+    /**
+     * Restores state from a previous snapshot (used on 409 conflict or network failure)
+     * @param {Object} snapshot
+     */
+    restoreSnapshot(snapshot) {
+        this.state.selectedSlot = snapshot.selectedSlot;
+        this.state.selectedCourt = snapshot.selectedCourt;
+        this.state.equipmentRequests = snapshot.equipmentRequests;
+        this.state.equipmentAvailability = snapshot.equipmentAvailability;
+        this.state.bookedCourtSlots = snapshot.bookedCourtSlots;
+        this.state.optimisticLock = null;
+    }
+}
+
+// Global reactive store instance
+const store = new ReactiveBookingStore();
+// Backward-compatibility alias for legacy scripts
+const bookingState = store.state;
+
+/**
+ * Initialize on page load
+ */
 document.addEventListener('DOMContentLoaded', async () => {
     initDatePicker();
+    setupReactiveSubscriptions();
     await loadBootstrapData();
 });
 
+/**
+ * Configure reactive subscriptions to decouple state mutations from manual render calls
+ */
+function setupReactiveSubscriptions() {
+    // When date or duration changes, update badge & availability
+    store.subscribe('date', () => updateDateBadge());
+    store.subscribe('duration', () => {
+        if (store.state.selectedCourt) renderTimeSlots();
+        updateSummary();
+    });
+
+    // When courts list updates, re-render court cards
+    store.subscribe('courts', () => renderCourts());
+
+    // When selected court changes, render slots & update price summary
+    store.subscribe('selectedCourt', () => {
+        renderCourts();
+        renderTimeSlots();
+        updateSummary();
+    });
+
+    // When selected slot changes, update slots highlight & price summary
+    store.subscribe('selectedSlot', () => {
+        renderTimeSlots();
+        updateSummary();
+    });
+
+    // When coach selection changes, update coaches highlight & price summary
+    store.subscribe('selectedCoach', () => {
+        renderCoaches();
+        updateSummary();
+    });
+
+    // When equipment availability changes, refresh stock labels
+    store.subscribe('equipmentAvailability', () => updateEquipmentStockLabels());
+}
+
+/**
+ * Initialize the date picker with today's date
+ */
 function initDatePicker() {
-    const datePicker = document.getElementById('bookingDate');
+    const datePicker = /** @type {HTMLInputElement|null} */ (document.getElementById('bookingDate'));
     if (datePicker) {
         const todayStr = getLocalDateString(new Date());
         datePicker.value = todayStr;
         datePicker.min = todayStr;
-        bookingState.date = todayStr;
+        store.state.date = todayStr;
         updateDateBadge();
     }
 }
 
+/**
+ * Update the schedule status badge
+ */
 function updateDateBadge() {
     const badge = document.getElementById('date-preview-badge');
-    if (!badge || !bookingState.date) return;
+    if (!badge || !store.state.date) return;
 
     const todayStr = getLocalDateString(new Date());
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     const tomorrowStr = getLocalDateString(tomorrow);
 
-    if (bookingState.date === todayStr) {
+    if (store.state.date === todayStr) {
         badge.textContent = "Today's Schedule";
         badge.className = 'badge-pro badge-status-open';
-    } else if (bookingState.date === tomorrowStr) {
+    } else if (store.state.date === tomorrowStr) {
         badge.textContent = "Tomorrow's Schedule";
         badge.className = 'badge-pro badge-admin-manga';
     } else {
-        const d = new Date(bookingState.date + 'T00:00:00');
+        const d = new Date(store.state.date + 'T00:00:00');
         const formatted = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         badge.textContent = formatted + ' Schedule';
         badge.className = 'badge-pro badge-member-manga';
     }
 }
 
+/**
+ * Loads consolidated bootstrap resource payload in 1 roundtrip
+ */
 async function loadBootstrapData() {
     try {
-        const data = await ApiClient.get(`/api/bootstrap?date=${bookingState.date}`);
-        bookingState.courts = data.courts || [];
-        bookingState.coaches = data.coaches || [];
-        bookingState.equipment = data.equipment || [];
-        bookingState.timeSlots = data.timeSlots || [];
-        bookingState.pricingRules = data.pricingRules || {};
+        const data = await ApiClient.get(`/api/bootstrap?date=${store.state.date}`);
+        store.state.courts = data.courts || [];
+        store.state.coaches = data.coaches || [];
+        store.state.equipment = data.equipment || [];
+        store.state.timeSlots = data.timeSlots || [];
+        store.state.pricingRules = data.pricingRules || {};
 
         const availability = data.availability || {};
-        bookingState.bookedCourtSlots = availability.booked_time_slots || availability.booked_courts || {};
-        bookingState.equipmentAvailability = availability.equipment_availability || {};
+        store.state.bookedCourtSlots = availability.booked_time_slots || availability.booked_courts || {};
+        store.state.equipmentAvailability = availability.equipment_availability || {};
 
         renderCourts();
         renderCoaches();
         renderEquipment();
-        if (bookingState.selectedCourt) {
+        if (store.state.selectedCourt) {
             renderTimeSlots();
         }
         updateEquipmentStockLabels();
@@ -91,6 +247,9 @@ async function loadBootstrapData() {
     }
 }
 
+/**
+ * Fallback initial resource loader
+ */
 async function loadInitialResources() {
     try {
         const [courts, coaches, equipment, slots] = await Promise.all([
@@ -100,10 +259,10 @@ async function loadInitialResources() {
             ApiClient.get('/api/timeslots')
         ]);
 
-        bookingState.courts = Array.isArray(courts) ? courts : (courts && courts.data ? courts.data : []);
-        bookingState.coaches = Array.isArray(coaches) ? coaches : (coaches && coaches.data ? coaches.data : []);
-        bookingState.equipment = Array.isArray(equipment) ? equipment : (equipment && equipment.data ? equipment.data : []);
-        bookingState.timeSlots = Array.isArray(slots) ? slots : (slots && slots.data ? slots.data : []);
+        store.state.courts = Array.isArray(courts) ? courts : (courts && courts.data ? courts.data : []);
+        store.state.coaches = Array.isArray(coaches) ? coaches : (coaches && coaches.data ? coaches.data : []);
+        store.state.equipment = Array.isArray(equipment) ? equipment : (equipment && equipment.data ? equipment.data : []);
+        store.state.timeSlots = Array.isArray(slots) ? slots : (slots && slots.data ? slots.data : []);
         renderCourts();
         renderCoaches();
         renderEquipment();
@@ -112,14 +271,17 @@ async function loadInitialResources() {
     }
 }
 
+/**
+ * Refresh availability from server
+ */
 async function refreshAvailability() {
     try {
-        const availability = await ApiClient.get(`/api/check_availability?date=${bookingState.date}`);
-        bookingState.bookedCourtSlots = availability.booked_time_slots || availability.booked_courts || {};
-        bookingState.equipmentAvailability = availability.equipment_availability || {};
+        const availability = await ApiClient.get(`/api/check_availability?date=${store.state.date}`);
+        store.state.bookedCourtSlots = availability.booked_time_slots || availability.booked_courts || {};
+        store.state.equipmentAvailability = availability.equipment_availability || {};
         
         renderCourts();
-        if (bookingState.selectedCourt) {
+        if (store.state.selectedCourt) {
             renderTimeSlots();
         }
         updateEquipmentStockLabels();
@@ -128,30 +290,35 @@ async function refreshAvailability() {
     }
 }
 
-
+/**
+ * Handle date or duration picker changes
+ */
 function onDateOrDurationChange() {
-    const dateInput = document.getElementById('bookingDate');
-    const durationInput = document.getElementById('bookingDuration');
-    if (dateInput) bookingState.date = dateInput.value;
-    if (durationInput) bookingState.duration = parseInt(durationInput.value, 10);
+    const dateInput = /** @type {HTMLInputElement|null} */ (document.getElementById('bookingDate'));
+    const durationInput = /** @type {HTMLSelectElement|null} */ (document.getElementById('bookingDuration'));
+    if (dateInput) store.state.date = dateInput.value;
+    if (durationInput) store.state.duration = parseInt(durationInput.value, 10);
     
     updateDateBadge();
 
     // Reset slot selection on date/duration change
-    bookingState.selectedSlot = null;
+    store.state.selectedSlot = null;
     refreshAvailability().then(() => {
         updateSummary();
     });
 }
 
+/**
+ * Render court selection cards
+ */
 function renderCourts() {
     const container = document.getElementById('courts-grid');
     if (!container) return;
 
-    container.innerHTML = bookingState.courts.map(court => {
-        const isSelected = bookingState.selectedCourt && bookingState.selectedCourt.id === court.id;
-        const courtBookedSlots = bookingState.bookedCourtSlots[court.id] || bookingState.bookedCourtSlots[String(court.id)] || [];
-        const isFullyBooked = bookingState.timeSlots.length > 0 && courtBookedSlots.length >= bookingState.timeSlots.length;
+    container.innerHTML = store.state.courts.map(court => {
+        const isSelected = store.state.selectedCourt && store.state.selectedCourt.id === court.id;
+        const courtBookedSlots = store.state.bookedCourtSlots[court.id] || store.state.bookedCourtSlots[String(court.id)] || [];
+        const isFullyBooked = store.state.timeSlots.length > 0 && courtBookedSlots.length >= store.state.timeSlots.length;
 
         return `
             <div id="court-card-${court.id}" 
@@ -177,33 +344,50 @@ function renderCourts() {
     }).join('');
 }
 
+/**
+ * Select a court
+ * @param {number} courtId
+ */
 function selectCourt(courtId) {
-    const court = bookingState.courts.find(c => c.id === courtId);
+    const court = store.state.courts.find(c => c.id === courtId);
     if (!court) return;
 
-    bookingState.selectedCourt = court;
-    bookingState.selectedSlot = null; // reset slot
-    renderCourts();
-    renderTimeSlots();
-    updateSummary();
+    store.state.selectedCourt = court;
+    store.state.selectedSlot = null; // reset slot
 }
 
+/**
+ * Helper to compute consecutive slots for duration
+ * @param {string} startSlot
+ * @param {number} duration
+ * @returns {string[]}
+ */
+function getSlotsForDuration(startSlot, duration) {
+    const idx = store.state.timeSlots.indexOf(startSlot);
+    if (idx === -1 || idx + duration > store.state.timeSlots.length) return [];
+    return store.state.timeSlots.slice(idx, idx + duration);
+}
+
+/**
+ * Render time slots with optimistic and conflict state visualization
+ */
 function renderTimeSlots() {
     const container = document.getElementById('slots-container');
-    if (!container || !bookingState.selectedCourt) return;
+    if (!container || !store.state.selectedCourt) return;
 
-    const courtId = bookingState.selectedCourt.id;
-    const bookedSlots = bookingState.bookedCourtSlots[courtId] || bookingState.bookedCourtSlots[String(courtId)] || [];
+    const courtId = store.state.selectedCourt.id;
+    const bookedSlots = store.state.bookedCourtSlots[courtId] || store.state.bookedCourtSlots[String(courtId)] || [];
 
     const now = new Date();
     const todayStr = getLocalDateString(now);
-    const isToday = (bookingState.date === todayStr);
+    const isToday = (store.state.date === todayStr);
     const currentHour = now.getHours();
     const currentMin = now.getMinutes();
 
-    const slotChips = bookingState.timeSlots.map((slot, idx) => {
+    const slotChips = store.state.timeSlots.map((slot, idx) => {
         let hasConflict = false;
         let isPast = false;
+        let isOptimisticallyLocked = false;
 
         // Check if slot has already elapsed today
         if (isToday) {
@@ -215,24 +399,37 @@ function renderTimeSlots() {
         }
 
         // Check duration bounds and booked overlaps
-        if (idx + bookingState.duration > bookingState.timeSlots.length) {
+        if (idx + store.state.duration > store.state.timeSlots.length) {
             hasConflict = true;
         } else if (!isPast) {
-            for (let i = 0; i < bookingState.duration; i++) {
-                const subSlot = bookingState.timeSlots[idx + i];
+            for (let i = 0; i < store.state.duration; i++) {
+                const subSlot = store.state.timeSlots[idx + i];
                 if (bookedSlots.includes(subSlot)) {
                     hasConflict = true;
+                    // Detect if this is an active optimistic reservation
+                    if (store.state.optimisticLock && 
+                        store.state.optimisticLock.courtId === courtId &&
+                        store.state.optimisticLock.slot === subSlot) {
+                        isOptimisticallyLocked = true;
+                    }
                     break;
                 }
             }
         }
 
-        const isSelected = bookingState.selectedSlot === slot;
-        const statusLabel = isPast ? 'Past' : (hasConflict ? 'Booked' : '');
+        const isSelected = store.state.selectedSlot === slot;
+        let statusLabel = '';
+        if (isOptimisticallyLocked) {
+            statusLabel = '⚡ Reserving...';
+        } else if (isPast) {
+            statusLabel = 'Past';
+        } else if (hasConflict) {
+            statusLabel = 'Booked';
+        }
 
         return `
             <button type="button" 
-                    class="slot-chip-pro ${hasConflict ? 'booked' : ''} ${isSelected ? 'selected' : ''}"
+                    class="slot-chip-pro ${hasConflict ? 'booked' : ''} ${isSelected ? 'selected' : ''} ${isOptimisticallyLocked ? 'optimistic-locking' : ''}"
                     ${hasConflict ? 'disabled' : ''}
                     onclick="selectTimeSlot('${slot}')">
                 <span>${slot}</span>
@@ -248,25 +445,29 @@ function renderTimeSlots() {
     `;
 }
 
+/**
+ * Select a start time slot
+ * @param {string} slot
+ */
 function selectTimeSlot(slot) {
-    bookingState.selectedSlot = slot;
-    renderTimeSlots();
-    updateSummary();
+    store.state.selectedSlot = slot;
 }
 
-
+/**
+ * Render coaching staff options
+ */
 function renderCoaches() {
     const container = document.getElementById('coaches-grid');
     if (!container) return;
 
     container.innerHTML = `
-        <div class="court-tile-pro ${bookingState.selectedCoach === null ? 'selected' : ''}"
+        <div class="court-tile-pro ${store.state.selectedCoach === null ? 'selected' : ''}"
              onclick="selectCoach(null)" style="padding: 16px;">
             <div style="font-weight: 800; font-size: 1rem; margin-bottom: 4px;">No Personal Coach</div>
             <div style="font-size: 0.82rem; color: var(--text-muted);">Independent practice session</div>
         </div>
-    ` + bookingState.coaches.map(coach => {
-        const isSelected = bookingState.selectedCoach && bookingState.selectedCoach.id === coach.id;
+    ` + store.state.coaches.map(coach => {
+        const isSelected = store.state.selectedCoach && store.state.selectedCoach.id === coach.id;
         return `
             <div class="court-tile-pro ${isSelected ? 'selected' : ''}"
                  onclick="selectCoach(${coach.id})" style="padding: 16px;">
@@ -280,24 +481,29 @@ function renderCoaches() {
     }).join('');
 }
 
+/**
+ * Select coach by ID
+ * @param {number|null} coachId
+ */
 function selectCoach(coachId) {
     if (coachId === null) {
-        bookingState.selectedCoach = null;
+        store.state.selectedCoach = null;
     } else {
-        bookingState.selectedCoach = bookingState.coaches.find(c => c.id === coachId) || null;
+        store.state.selectedCoach = store.state.coaches.find(c => c.id === coachId) || null;
     }
-    renderCoaches();
-    updateSummary();
 }
 
+/**
+ * Render equipment rental inventory
+ */
 function renderEquipment() {
     const container = document.getElementById('equipment-grid');
     if (!container) return;
 
-    container.innerHTML = bookingState.equipment.map(item => {
-        const currentQty = bookingState.equipmentRequests[item.id] || 0;
-        const available = bookingState.equipmentAvailability[item.id] !== undefined 
-            ? bookingState.equipmentAvailability[item.id] 
+    container.innerHTML = store.state.equipment.map(item => {
+        const currentQty = store.state.equipmentRequests[item.id] || 0;
+        const available = store.state.equipmentAvailability[item.id] !== undefined 
+            ? store.state.equipmentAvailability[item.id] 
             : item.total_available;
 
         return `
@@ -318,18 +524,26 @@ function renderEquipment() {
     }).join('');
 }
 
+/**
+ * Adjust equipment requested quantity
+ * @param {number} equipId
+ * @param {number} delta
+ */
 function changeEquipmentQty(equipId, delta) {
-    const current = bookingState.equipmentRequests[equipId] || 0;
-    const item = bookingState.equipment.find(e => e.id === equipId);
-    const available = bookingState.equipmentAvailability[equipId] !== undefined 
-        ? bookingState.equipmentAvailability[equipId] 
+    const current = store.state.equipmentRequests[equipId] || 0;
+    const item = store.state.equipment.find(e => e.id === equipId);
+    const available = store.state.equipmentAvailability[equipId] !== undefined 
+        ? store.state.equipmentAvailability[equipId] 
         : (item ? item.total_available : 10);
 
     const nextVal = Math.max(0, Math.min(available, current + delta));
-    bookingState.equipmentRequests[equipId] = nextVal;
+    store.state.equipmentRequests = {
+        ...store.state.equipmentRequests,
+        [equipId]: nextVal
+    };
     
     const qtyElem = document.getElementById(`eq-qty-${equipId}`);
-    if (qtyElem) qtyElem.textContent = nextVal;
+    if (qtyElem) qtyElem.textContent = String(nextVal);
 
     debouncedUpdateSummary();
 }
@@ -342,44 +556,51 @@ function debouncedUpdateSummary(delay = 150) {
     }, delay);
 }
 
-
+/**
+ * Update stock counts on screen
+ */
 function updateEquipmentStockLabels() {
-    bookingState.equipment.forEach(item => {
-        const avail = bookingState.equipmentAvailability[item.id] !== undefined
-            ? bookingState.equipmentAvailability[item.id]
+    store.state.equipment.forEach(item => {
+        const avail = store.state.equipmentAvailability[item.id] !== undefined
+            ? store.state.equipmentAvailability[item.id]
             : item.total_available;
         const stockElem = document.getElementById(`eq-stock-${item.id}`);
-        if (stockElem) stockElem.textContent = avail;
+        if (stockElem) stockElem.textContent = String(avail);
     });
 }
 
+/**
+ * ⚡ Instant 0ms Client-Side Price Calculation Engine
+ * Replicates server pricing rules locally for instant feedback before server confirmation
+ * @returns {number|null}
+ */
 function calculateLocalPricePreview() {
-    if (!bookingState.selectedCourt || !bookingState.selectedSlot) return null;
+    if (!store.state.selectedCourt || !store.state.selectedSlot) return null;
 
-    const court = bookingState.selectedCourt;
-    const duration = bookingState.duration || 1;
-    const coach = bookingState.selectedCoach;
-    const rules = bookingState.pricingRules || {};
+    const court = store.state.selectedCourt;
+    const duration = store.state.duration || 1;
+    const coach = store.state.selectedCoach;
+    const rules = store.state.pricingRules || {};
 
     let courtSubtotal = (court.base_price || 0) * duration;
     
-    if (court.type === 'indoor' && rules.indoor_surcharge) {
-        courtSubtotal += (parseFloat(rules.indoor_surcharge) * duration);
+    // Indoor multiplier
+    if (court.type === 'indoor' && rules.indoor && rules.indoor.enabled) {
+        courtSubtotal *= (rules.indoor.multiplier || 1.2);
     }
 
-    const d = new Date(bookingState.date + 'T00:00:00');
+    // Weekend multiplier
+    const d = new Date(store.state.date + 'T00:00:00');
     const dayOfWeek = d.getDay();
-    if ((dayOfWeek === 0 || dayOfWeek === 6) && rules.weekend_multiplier) {
-        courtSubtotal *= parseFloat(rules.weekend_multiplier);
+    if ((dayOfWeek === 0 || dayOfWeek === 6) && rules.weekend && rules.weekend.enabled) {
+        courtSubtotal *= (rules.weekend.multiplier || 1.3);
     }
 
-    let multiDiscount = 0;
-    if (duration === 2 && rules.multi_hour_2h_discount) multiDiscount = parseFloat(rules.multi_hour_2h_discount);
-    if (duration === 3 && rules.multi_hour_3h_discount) multiDiscount = parseFloat(rules.multi_hour_3h_discount);
-    if (duration >= 4 && rules.multi_hour_4h_plus_discount) multiDiscount = parseFloat(rules.multi_hour_4h_plus_discount);
-
-    if (multiDiscount > 0) {
-        courtSubtotal *= (1 - multiDiscount / 100);
+    // Multi-hour discount
+    if (duration > 1 && rules.multipleHours && rules.multipleHours.enabled) {
+        const discountPerHour = rules.multipleHours.discountPerHour || rules.multipleHours.discount || 0.10;
+        const totalDiscount = Math.min(0.50, discountPerHour * (duration - 1));
+        courtSubtotal *= (1 - totalDiscount);
     }
 
     let coachSubtotal = 0;
@@ -389,9 +610,9 @@ function calculateLocalPricePreview() {
 
     let equipSubtotal = 0;
     let totalEquipQty = 0;
-    for (const [eqId, qty] of Object.entries(bookingState.equipmentRequests)) {
+    for (const [eqId, qty] of Object.entries(store.state.equipmentRequests)) {
         if (qty > 0) {
-            const item = bookingState.equipment.find(e => e.id === parseInt(eqId, 10));
+            const item = store.state.equipment.find(e => e.id === parseInt(eqId, 10));
             if (item) {
                 equipSubtotal += (item.price || 0) * qty;
                 totalEquipQty += qty;
@@ -399,19 +620,23 @@ function calculateLocalPricePreview() {
         }
     }
 
-    if (totalEquipQty >= 3 && rules.equipment_bundle_discount) {
-        const bundleDisc = parseFloat(rules.equipment_bundle_discount);
-        equipSubtotal *= (1 - bundleDisc / 100);
+    // Equipment bundle discount
+    if (rules.bundle && rules.bundle.enabled && totalEquipQty >= (rules.bundle.minItems || 3)) {
+        const bundleDisc = rules.bundle.discount || 0.15;
+        equipSubtotal *= (1 - bundleDisc);
     }
 
     return Math.round(courtSubtotal + coachSubtotal + equipSubtotal);
 }
 
+/**
+ * Updates summary view with instant optimistic pricing + authoritative backend preview
+ */
 async function updateSummary() {
     const emptyBox = document.getElementById('summary-empty');
     const contentBox = document.getElementById('summary-content');
 
-    if (!bookingState.selectedCourt || !bookingState.selectedSlot) {
+    if (!store.state.selectedCourt || !store.state.selectedSlot) {
         if (emptyBox) emptyBox.style.display = 'block';
         if (contentBox) contentBox.style.display = 'none';
         return;
@@ -420,10 +645,10 @@ async function updateSummary() {
     if (emptyBox) emptyBox.style.display = 'none';
     if (contentBox) contentBox.style.display = 'block';
 
-    document.getElementById('sum-court').textContent = bookingState.selectedCourt.name;
-    document.getElementById('sum-time').textContent = `${bookingState.date} @ ${bookingState.selectedSlot}`;
-    document.getElementById('sum-duration').textContent = `${bookingState.duration} Hour${bookingState.duration > 1 ? 's' : ''}`;
-    document.getElementById('sum-coach').textContent = bookingState.selectedCoach ? bookingState.selectedCoach.name : 'None';
+    document.getElementById('sum-court').textContent = store.state.selectedCourt.name;
+    document.getElementById('sum-time').textContent = `${store.state.date} @ ${store.state.selectedSlot}`;
+    document.getElementById('sum-duration').textContent = `${store.state.duration} Hour${store.state.duration > 1 ? 's' : ''}`;
+    document.getElementById('sum-coach').textContent = store.state.selectedCoach ? store.state.selectedCoach.name : 'None';
 
     // ⚡ Instant 0ms optimistic estimate
     const localEst = calculateLocalPricePreview();
@@ -433,12 +658,12 @@ async function updateSummary() {
 
     try {
         const preview = await ApiClient.post('/api/calculate-price', {
-            court_id: bookingState.selectedCourt.id,
-            date: bookingState.date,
-            time_slot: bookingState.selectedSlot,
-            duration: bookingState.duration,
-            coach_id: bookingState.selectedCoach ? bookingState.selectedCoach.id : null,
-            equipment: bookingState.equipmentRequests
+            court_id: store.state.selectedCourt.id,
+            date: store.state.date,
+            time_slot: store.state.selectedSlot,
+            duration: store.state.duration,
+            coach_id: store.state.selectedCoach ? store.state.selectedCoach.id : null,
+            equipment: store.state.equipmentRequests
         });
 
         const breakdownContainer = document.getElementById('breakdown-list');
@@ -459,56 +684,116 @@ async function updateSummary() {
     }
 }
 
-
+/**
+ * ⚡ SUBMIT BOOKING WITH CLIENT-SIDE OPTIMISTIC UPDATES & ATOMIC ROLLBACK
+ */
 async function submitBooking() {
-    if (!bookingState.selectedCourt || !bookingState.selectedSlot) {
+    if (!store.state.selectedCourt || !store.state.selectedSlot) {
         ApiClient.showToast('Please select a court and start time slot', 'error');
         return;
     }
 
+    const court = store.state.selectedCourt;
+    const startSlot = store.state.selectedSlot;
+    const duration = store.state.duration;
+    const bookingDate = store.state.date;
+    const coach = store.state.selectedCoach;
+    const equipRequests = { ...store.state.equipmentRequests };
+
+    // 1. Snapshot state for instant rollback in case of conflict or network error
+    const rollbackSnapshot = store.createSnapshot();
+
+    // 2. OPTIMISTIC UPDATE:
+    // Mark requested consecutive slots as booked in local state immediately
+    const consecutive = getSlotsForDuration(startSlot, duration);
+    const courtIdStr = String(court.id);
+    const existingBooked = store.state.bookedCourtSlots[courtIdStr] || [];
+    const optimisticBookedSlots = [...new Set([...existingBooked, ...consecutive])];
+
+    // Decrement stock optimistically
+    const nextStock = { ...store.state.equipmentAvailability };
+    for (const [eqId, qty] of Object.entries(equipRequests)) {
+        if (nextStock[eqId] !== undefined) {
+            nextStock[eqId] = Math.max(0, nextStock[eqId] - qty);
+        }
+    }
+
+    // Apply optimistic updates to reactive store
+    store.state.optimisticLock = {
+        courtId: court.id,
+        slot: startSlot,
+        date: bookingDate
+    };
+    store.state.bookedCourtSlots = {
+        ...store.state.bookedCourtSlots,
+        [courtIdStr]: optimisticBookedSlots
+    };
+    store.state.equipmentAvailability = nextStock;
+
+    // Instantly update UI components
+    renderTimeSlots();
+    updateEquipmentStockLabels();
+
     const btn = document.getElementById('btnConfirmBooking');
     btn.disabled = true;
-    btn.innerHTML = '<span>Locking Court Slot...</span>';
+    btn.innerHTML = '<span>⚡ Securing Row Lock & Slots...</span>';
 
     try {
         const payload = {
-            court_id: bookingState.selectedCourt.id,
-            date: bookingState.date,
-            time_slot: bookingState.selectedSlot,
-            duration: bookingState.duration,
-            coach_id: bookingState.selectedCoach ? bookingState.selectedCoach.id : null,
-            equipment: bookingState.equipmentRequests
+            court_id: court.id,
+            date: bookingDate,
+            time_slot: startSlot,
+            duration: duration,
+            coach_id: coach ? coach.id : null,
+            equipment: equipRequests
         };
 
         const result = await ApiClient.post('/api/bookings/create', payload);
 
         if (result.success) {
-            ApiClient.showToast(`Court Reserved! Match ID #${result.booking_id || (result.data && result.data.booking_id)} 🏸`, 'success');
+            const bookingId = result.booking_id || (result.data && result.data.booking_id);
+            ApiClient.showToast(`Court Reserved! Match ID #${bookingId} 🏸`, 'success');
 
-            // Reset selection
-            bookingState.selectedSlot = null;
-            bookingState.equipmentRequests = {};
-            bookingState.selectedCoach = null;
-            bookingState.duration = 1;
-            document.getElementById('bookingDuration').value = '1';
+            // Finalize optimistic state
+            store.state.optimisticLock = null;
+            store.state.selectedSlot = null;
+            store.state.equipmentRequests = {};
+            store.state.selectedCoach = null;
+            store.state.duration = 1;
+            const durSelect = /** @type {HTMLSelectElement|null} */ (document.getElementById('bookingDuration'));
+            if (durSelect) durSelect.value = '1';
 
             renderCoaches();
             renderEquipment();
             await refreshAvailability();
             updateSummary();
 
-            setTimeout(() => switchMainTab('history'), 600);
+            setTimeout(() => switchMainTab('history'), 500);
         } else {
-            ApiClient.showToast(result.message || 'Booking failed.', 'error');
+            // ROLLBACK: Revert optimistic state back to snapshot
+            store.restoreSnapshot(rollbackSnapshot);
+            renderTimeSlots();
+            updateEquipmentStockLabels();
+            updateSummary();
+            ApiClient.showToast(result.message || 'Slot collision detected. Selection rolled back.', 'error');
         }
     } catch (err) {
-        ApiClient.showToast(err.message || 'An error occurred during booking.', 'error');
+        // ROLLBACK: Revert optimistic state back to snapshot
+        store.restoreSnapshot(rollbackSnapshot);
+        renderTimeSlots();
+        updateEquipmentStockLabels();
+        updateSummary();
+        ApiClient.showToast(err.message || 'Concurrency conflict: slot was claimed by another player.', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<span>Smash & Reserve Court</span><span>⚡</span>';
     }
 }
 
+/**
+ * Switch tabs between Reservation Hub and Match History
+ * @param {'book'|'history'} tab
+ */
 function switchMainTab(tab) {
     const bookView = document.getElementById('view-book');
     const historyView = document.getElementById('view-history');
@@ -516,7 +801,8 @@ function switchMainTab(tab) {
     const tabBook = document.getElementById('tab-book');
     const tabHistory = document.getElementById('tab-history');
 
-    // Reset views
+    if (!bookView || !historyView || !tabBook || !tabHistory) return;
+
     bookView.style.display = 'none';
     historyView.style.display = 'none';
 
@@ -533,15 +819,20 @@ function switchMainTab(tab) {
     }
 }
 
+/**
+ * Loads match history with optimistic row tracking
+ */
 async function loadBookingHistory() {
     const container = document.getElementById('history-container');
+    if (!container) return;
     container.innerHTML = '<p style="color: var(--text-muted);">Loading your match records...</p>';
 
     try {
         const raw = await ApiClient.get('/api/bookings');
+        /** @type {Booking[]} */
         const bookings = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.data) ? raw.data : []);
+        
         if (!bookings || bookings.length === 0) {
-
             container.innerHTML = `
                 <div style="text-align: center; padding: 48px 0; color: var(--text-muted);">
                     <div style="font-size: 3rem; margin-bottom: 12px; opacity: 0.7;">🏸</div>
@@ -570,7 +861,7 @@ async function loadBookingHistory() {
                     </thead>
                     <tbody>
                         ${bookings.map(b => `
-                            <tr>
+                            <tr id="booking-row-${b.id}">
                                 <td style="font-weight: 900; color: var(--orange-primary);">#${b.id}</td>
                                 <td style="font-weight: 700; color: var(--text-white);">${b.court ? b.court.name : 'Court #' + b.court_id}</td>
                                 <td>${b.date} @ <strong style="color: var(--text-white);">${b.time_slot}</strong></td>
@@ -592,7 +883,6 @@ async function loadBookingHistory() {
                                         </button>
                                     ` : (b.status === 'completed' ? '<span style="color: var(--accent-green); font-size: 0.85rem; font-weight: 700;">Completed</span>' : '<span style="color: var(--text-dim); font-size: 0.85rem;">Released</span>')}
                                 </td>
-
                             </tr>
                         `).join('')}
                     </tbody>
@@ -604,18 +894,45 @@ async function loadBookingHistory() {
     }
 }
 
+/**
+ * ⚡ OPTIMISTIC BOOKING CANCELLATION WITH ROLLBACK
+ * @param {number} bookingId
+ */
 async function cancelBooking(bookingId) {
     if (!confirm(`Cancel Match Booking #${bookingId}? Slot locks will be immediately released.`)) return;
+
+    // OPTIMISTIC UPDATE: Transition row badge immediately to releasing state
+    const row = document.getElementById(`booking-row-${bookingId}`);
+    let oldBadgeHtml = '';
+    if (row) {
+        const badge = row.querySelector('.badge-pro');
+        if (badge) {
+            oldBadgeHtml = badge.outerHTML;
+            badge.className = 'badge-pro badge-status-busy';
+            badge.innerHTML = '⏳ Releasing...';
+        }
+    }
 
     try {
         const result = await ApiClient.post(`/api/bookings/${bookingId}/cancel`);
         if (result.success) {
             ApiClient.showToast(`Booking #${bookingId} cancelled successfully.`, 'info');
+            await refreshAvailability();
             loadBookingHistory();
         } else {
+            // Rollback optimistic badge
+            if (row && oldBadgeHtml) {
+                const badge = row.querySelector('.badge-pro');
+                if (badge) badge.outerHTML = oldBadgeHtml;
+            }
             ApiClient.showToast(result.message || 'Failed to cancel booking.', 'error');
         }
     } catch (err) {
+        // Rollback optimistic badge
+        if (row && oldBadgeHtml) {
+            const badge = row.querySelector('.badge-pro');
+            if (badge) badge.outerHTML = oldBadgeHtml;
+        }
         ApiClient.showToast(err.message || 'Error cancelling booking.', 'error');
     }
 }

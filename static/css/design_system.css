@@ -435,6 +435,21 @@ a:hover {
     opacity: 0.5;
 }
 
+.slot-chip-pro.optimistic-locking {
+    background: rgba(255, 179, 0, 0.15);
+    border-color: #ffb300;
+    color: #ffb300;
+    animation: slot-pulse-glow 1.2s infinite ease-in-out;
+    cursor: wait;
+    opacity: 0.95;
+    text-decoration: none;
+}
+
+@keyframes slot-pulse-glow {
+    0%, 100% { opacity: 0.75; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+}
+
 /* Form Controls */
 .pro-form-group {
     margin-bottom: 20px;

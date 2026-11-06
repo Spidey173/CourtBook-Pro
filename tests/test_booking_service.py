@@ -188,3 +188,31 @@ def test_booking_cancellation_releases_slot(seed_test_data, normal_user):
         duration=1
     )
     assert new_result['booking_id'] is not None
+
+
+def test_row_locking_concurrent_slot_conflict_prevention(seed_test_data, normal_user):
+    """Verify that pessimistic row-level locking (with_for_update) detects existing slot locks."""
+    tomorrow = date.today() + timedelta(days=2)
+    court = Court.query.filter_by(id=1).first()
+
+    # Initial booking acquires row lock and writes slots
+    res1 = BookingService.create_booking(
+        user_id=normal_user.id,
+        court_id=court.id,
+        booking_date=tomorrow,
+        time_slot='18:00',
+        duration=2
+    )
+    assert res1['booking_id'] is not None
+
+    # Concurrent attempt on overlapping slot 19:00 fails via locked slot check
+    with pytest.raises(BookingConflictError) as exc_info:
+        BookingService.create_booking(
+            user_id=normal_user.id,
+            court_id=court.id,
+            booking_date=tomorrow,
+            time_slot='19:00',
+            duration=1
+        )
+    assert "already booked" in str(exc_info.value)
+

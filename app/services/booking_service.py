@@ -54,43 +54,68 @@ class BookingService:
             except (ValueError, TypeError):
                 continue
 
-        # 1. Fetch Court
-        court = Court.query.filter_by(id=court_id, is_active=True).first()
+        # 1. Fetch Court with row-level pessimistic lock (FOR UPDATE)
+        court = Court.query.filter_by(id=court_id, is_active=True).with_for_update().first()
         if not court:
             raise ValueError(f"Court #{court_id} does not exist or is currently inactive.")
 
-        # 2. Fetch Coach (if requested)
+        # 2. Fetch Coach (if requested) with row-level pessimistic lock (FOR UPDATE)
         coach = None
         if coach_id:
-            coach = Coach.query.filter_by(id=coach_id, is_active=True).first()
+            coach = Coach.query.filter_by(id=coach_id, is_active=True).with_for_update().first()
             if not coach:
                 raise ValueError(f"Coach #{coach_id} does not exist or is currently inactive.")
 
-        # 3. Check Court Availability across all duration slots
+        # 3. Check Duration and Operating Slot Bounds
         consecutive_slots = AvailabilityService.get_slots_for_duration(time_slot, duration)
         if len(consecutive_slots) < duration:
             raise ValueError(f"Cannot book {duration} hours starting at {time_slot} (exceeds operating hours).")
 
-        if not AvailabilityService.is_court_available(court_id, booking_date, time_slot, duration):
+        # 4. Lock existing BookingSlot rows for this court and time window to serialize concurrent reservations
+        existing_court_slots = (
+            BookingSlot.query.filter(
+                BookingSlot.court_id == court_id,
+                BookingSlot.date == booking_date,
+                BookingSlot.time_slot.in_(consecutive_slots)
+            )
+            .with_for_update()
+            .all()
+        )
+        if existing_court_slots or not AvailabilityService.is_court_available(court_id, booking_date, time_slot, duration):
             raise BookingConflictError(f"{court.name} is already booked for the selected time slot(s).")
 
-        # 4. Check Coach Availability
-        if coach and not AvailabilityService.is_coach_available(coach_id, booking_date, time_slot, duration):
-            raise BookingConflictError(f"{coach.name} is already reserved for the selected time slot(s).")
+        # 5. Lock existing Coach slots (if coach requested)
+        if coach:
+            existing_coach_slots = (
+                BookingSlot.query.filter(
+                    BookingSlot.coach_id == coach_id,
+                    BookingSlot.date == booking_date,
+                    BookingSlot.time_slot.in_(consecutive_slots)
+                )
+                .with_for_update()
+                .all()
+            )
+            if existing_coach_slots or not AvailabilityService.is_coach_available(coach_id, booking_date, time_slot, duration):
+                raise BookingConflictError(f"{coach.name} is already reserved for the selected time slot(s).")
 
-        # 5. Check Equipment Availability
+        # 6. Lock Equipment rows and verify available inventory
         if cleaned_equip:
+            locked_equipment = (
+                Equipment.query.filter(Equipment.id.in_(list(cleaned_equip.keys())))
+                .with_for_update()
+                .all()
+            )
             eq_avail_map = AvailabilityService.get_equipment_availability(booking_date, consecutive_slots)
             for eq_id, requested_qty in cleaned_equip.items():
                 available_qty = eq_avail_map.get(eq_id, 0)
                 if requested_qty > available_qty:
-                    eq_obj = db.session.get(Equipment, eq_id)
+                    eq_obj = next((e for e in locked_equipment if e.id == eq_id), None) or db.session.get(Equipment, eq_id)
                     eq_name = eq_obj.name if eq_obj else f"Item #{eq_id}"
                     raise BookingConflictError(
                         f"Insufficient stock for {eq_name}. Requested: {requested_qty}, Available: {available_qty}"
                     )
 
-        # 6. Authoritative Pricing Calculation
+        # 7. Authoritative Pricing Calculation
         price_result = PricingService.calculate_price(
             court=court,
             booking_date=booking_date,
@@ -161,8 +186,9 @@ class BookingService:
     def cancel_booking(cls, booking_id: int, user_id: Optional[int] = None, is_admin: bool = False) -> Booking:
         """
         Cancels an active booking and immediately releases physical slot locks.
+        Acquires row-level pessimistic lock (FOR UPDATE) to prevent cancellation race conditions.
         """
-        booking = db.session.get(Booking, booking_id)
+        booking = Booking.query.filter_by(id=booking_id).with_for_update().first()
         if not booking:
             raise BookingNotFoundError(f"Booking #{booking_id} does not exist.")
 
@@ -171,6 +197,9 @@ class BookingService:
 
         if booking.status == BookingStatus.CANCELLED.value:
             raise ValueError("This booking is already cancelled.")
+
+        # Lock slots before deletion
+        BookingSlot.query.filter_by(booking_id=booking.id).with_for_update().all()
 
         # Update status and delete physical slot locks to free up availability
         booking.status = BookingStatus.CANCELLED.value
