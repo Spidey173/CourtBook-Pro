@@ -100,7 +100,7 @@ export const Toast: React.FC<ToastProps> = ({ toasts, onClose }) => {
 };
 
 interface ToastContextValue {
-  showToast: (type: ToastType, title: string, description?: string) => void;
+  showToast: (type: ToastType, titleOrMessage: string, description?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -108,7 +108,11 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 export function useToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
+    return {
+      showToast: (type: ToastType, titleOrMessage: string, description?: string) => {
+        console.log(`[Toast ${type}]`, titleOrMessage, description || '');
+      },
+    };
   }
   return context;
 }
@@ -116,9 +120,9 @@ export function useToast() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = useCallback((type: ToastType, title: string, description?: string) => {
+  const showToast = useCallback((type: ToastType, titleOrMessage: string, description?: string) => {
     const id = Math.random().toString(36).substring(2, 9);
-    setToasts((prev) => [...prev, { id, type, title, description }]);
+    setToasts((prev) => [...prev, { id, type, title: titleOrMessage, message: titleOrMessage, description }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);

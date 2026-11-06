@@ -5,12 +5,12 @@ import { User } from '../types';
 import { useToast } from './Toast';
 
 interface AuthModalProps {
-  isOpen: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   onSuccess: (user: User) => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+export const AuthModal: React.FC<AuthModalProps> = ({ isOpen = true, onClose, onSuccess }) => {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -19,7 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
-  if (!isOpen) return null;
+  if (isOpen === false) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

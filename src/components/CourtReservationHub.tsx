@@ -27,16 +27,22 @@ import {
 
 interface CourtReservationHubProps {
   user: User | null;
-  onOpenAuth: () => void;
+  onOpenAuth?: () => void;
+  onAuthRequired?: () => void;
   onBookingCreated: () => void;
+  showToast?: (type: any, titleOrMsg: string, desc?: string) => void;
 }
 
 export const CourtReservationHub: React.FC<CourtReservationHubProps> = ({
   user,
   onOpenAuth,
+  onAuthRequired,
   onBookingCreated,
+  showToast: propShowToast,
 }) => {
-  const { showToast } = useToast();
+  const toastCtx = useToast();
+  const showToast = propShowToast || toastCtx.showToast;
+  const triggerAuth = onOpenAuth || onAuthRequired || (() => {});
 
   // State
   const [date, setDate] = useState<string>(() => {
@@ -178,7 +184,7 @@ export const CourtReservationHub: React.FC<CourtReservationHubProps> = ({
   // Submit Booking with Optimistic Locking
   const handleReserve = async () => {
     if (!user) {
-      onOpenAuth();
+      triggerAuth();
       return;
     }
     if (!selectedCourtId || !selectedSlot) {

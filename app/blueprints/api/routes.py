@@ -71,7 +71,6 @@ def invalidate_cache(key_prefix: Optional[str] = None):
 
 @api_bp.route('/bootstrap', methods=['GET'])
 @api_bp.route('/v1/bootstrap', methods=['GET'])
-@api_login_required
 def get_bootstrap():
     """Consolidated endpoint returning all initial application resources and availability in 1 single roundtrip."""
     date_str = request.args.get('date', date.today().strftime('%Y-%m-%d'))
@@ -243,7 +242,6 @@ def get_pricing_rules():
 
 @api_bp.route('/availability', methods=['GET'])
 @api_bp.route('/v1/availability', methods=['GET'])
-@api_login_required
 def get_availability():
     """Detailed availability query for court, equipment, and coaches optimized with single snapshot batching."""
     try:
@@ -314,7 +312,6 @@ def check_availability_legacy():
 
 @api_bp.route('/calculate-price', methods=['POST'])
 @api_bp.route('/v1/calculate-price', methods=['POST'])
-@api_login_required
 def calculate_price_endpoint():
     """Computes authoritative price estimate without booking."""
     data = request.get_json(silent=True) or {}
