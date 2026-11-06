@@ -1,9 +1,23 @@
 """Pytest Configuration & Fixtures."""
 import pytest
 from datetime import date, timedelta
+from sqlalchemy import text
 from app import create_app
 from app.extensions import db as _db
 from app.models import User, Court, Equipment, Coach, PricingRule, Booking, BookingSlot, BookingEquipment
+
+
+def _reset_postgres_sequences():
+    """Resets PostgreSQL sequence generators to match max(id) across tables."""
+    if _db.engine.dialect.name == 'postgresql':
+        for table in ['courts', 'equipment', 'coaches', 'pricing_rules', 'users', 'bookings', 'booking_slots', 'booking_equipment']:
+            try:
+                _db.session.execute(
+                    text(f"SELECT setval(pg_get_serial_sequence('{table}', 'id'), COALESCE((SELECT MAX(id) FROM {table}), 0) + 1, false)")
+                )
+            except Exception:
+                pass
+        _db.session.commit()
 
 
 @pytest.fixture(scope='session')
@@ -18,12 +32,20 @@ def app():
 
 @pytest.fixture(scope='function')
 def db_session(app):
-    """Provides a transactional database session for each test function."""
+    """Provides a clean transactional database session for each test function."""
     with app.app_context():
-        _db.create_all()
+        _db.session.rollback()
+        for table in reversed(_db.metadata.sorted_tables):
+            _db.session.execute(table.delete())
+        _db.session.commit()
+        _reset_postgres_sequences()
         yield _db.session
+        _db.session.rollback()
+        for table in reversed(_db.metadata.sorted_tables):
+            _db.session.execute(table.delete())
+        _db.session.commit()
+        _reset_postgres_sequences()
         _db.session.remove()
-        _db.drop_all()
 
 
 @pytest.fixture(scope='function')
@@ -71,6 +93,7 @@ def seed_test_data(db_session):
     _db.session.add_all(coaches)
     _db.session.add_all(pricing_rules)
     _db.session.commit()
+    _reset_postgres_sequences()
 
     return {
         'courts': courts,
@@ -92,6 +115,7 @@ def normal_user(db_session):
     user.set_password('Secret@123')
     db_session.add(user)
     db_session.commit()
+    _reset_postgres_sequences()
     return user
 
 
@@ -107,6 +131,7 @@ def admin_user(db_session):
     admin.set_password('AdminSecret@123')
     db_session.add(admin)
     db_session.commit()
+    _reset_postgres_sequences()
     return admin
 
 

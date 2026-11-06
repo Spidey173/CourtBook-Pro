@@ -12,7 +12,7 @@ class Court(db.Model):
     type = db.Column(db.String(20), nullable=False)  # 'indoor' or 'outdoor'
     base_price = db.Column(db.Integer, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)  # Soft delete / availability toggle
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     bookings = db.relationship('Booking', back_populates='court', lazy='dynamic')

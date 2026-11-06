@@ -26,12 +26,15 @@ class Booking(db.Model):
     duration = db.Column(db.Integer, default=1, nullable=False)  # Number of consecutive hours
     total_price = db.Column(db.Integer, nullable=False)  # Authoritative total computed server-side
     status = db.Column(db.String(20), default=BookingStatus.CONFIRMED.value, nullable=False, index=True)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    start_time_utc = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    end_time_utc = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    timezone = db.Column(db.String(50), default='UTC', nullable=False)
 
     # Relationships optimized with eager fetching to eliminate N+1 query loops
-    user = db.relationship('User', back_populates='bookings', lazy='joined')
-    court = db.relationship('Court', back_populates='bookings', lazy='joined')
-    coach = db.relationship('Coach', back_populates='bookings', lazy='joined')
+    user = db.relationship('User', back_populates='bookings', lazy='selectin')
+    court = db.relationship('Court', back_populates='bookings', lazy='selectin')
+    coach = db.relationship('Coach', back_populates='bookings', lazy='selectin')
     equipment_items = db.relationship('BookingEquipment', back_populates='booking', cascade='all, delete-orphan', lazy='selectin')
     slots = db.relationship('BookingSlot', back_populates='booking', cascade='all, delete-orphan', lazy='selectin')
 
@@ -65,6 +68,9 @@ class Booking(db.Model):
             'status': self.status,
             'created_at': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else None,
             'createdAt': self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else None,
+            'start_time_utc': self.start_time_utc.isoformat() if self.start_time_utc else None,
+            'end_time_utc': self.end_time_utc.isoformat() if self.end_time_utc else None,
+            'timezone': self.timezone or 'UTC',
             'equipment': [item.to_dict() for item in self.equipment_items]
         }
 
@@ -85,6 +91,8 @@ class BookingSlot(db.Model):
     coach_id = db.Column(db.Integer, db.ForeignKey('coaches.id', ondelete='SET NULL'), nullable=True)
     date = db.Column(db.Date, nullable=False)
     time_slot = db.Column(db.String(10), nullable=False)  # Specific slot e.g. "09:00"
+    start_time_utc = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
+    end_time_utc = db.Column(db.DateTime(timezone=True), nullable=True, index=True)
 
     # Relationships
     booking = db.relationship('Booking', back_populates='slots')

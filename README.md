@@ -5,9 +5,9 @@
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=for-the-badge&logo=flask&logoColor=white)](https://flask.palletsprojects.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon%20Serverless-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.tech)
-[![Tests](https://img.shields.io/badge/Tests-38%20Passed-success?style=for-the-badge&logo=pytest)](https://github.com/Spidey173/CourtBook-Pro)
+[![Tests](https://img.shields.io/badge/Tests-43%20Passed-success?style=for-the-badge&logo=pytest)](https://github.com/Spidey173/CourtBook-Pro)
 
-A full-stack court booking and resource management system built with **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**. Engineered with rigorous **pessimistic database-level row locking (`SELECT ... FOR UPDATE`) and atomic slot allocations** to prevent race conditions and double-bookings under concurrent traffic, alongside a **modern reactive client architecture with optimistic UI updates, state rollback, and TypeScript type safety**.
+A full-stack court booking and resource management system built with **Python**, **Flask**, **SQLAlchemy**, and **PostgreSQL**. Engineered with rigorous **pessimistic database-level row locking (`SELECT ... FOR UPDATE`) and atomic slot allocations** to prevent race conditions and double-bookings under concurrent traffic, alongside **strict UTC timestamp normalization across timezone boundaries**, a **production-parity Docker PostgreSQL development environment**, and a **modern reactive client architecture with optimistic UI updates, state rollback, and TypeScript type safety**.
 
 ---
 
@@ -45,6 +45,7 @@ Standard booking systems frequently suffer from race conditions when two users r
    - At the beginning of `create_booking()`, the engine acquires exclusive row locks on `Court` (`Court.query.filter_by(id=court_id).with_for_update().first()`), `Coach`, and requested `Equipment` rows.
    - Any concurrent transaction attempting to reserve the same court or coach is serialized at the database row level rather than relying solely on post-failure exceptions.
    - Any active overlapping `BookingSlot` records are queried with `.with_for_update()` to detect collision before performing any insertions.
+   - Relationships on `Booking` use `lazy='selectin'` loading to prevent PostgreSQL `FeatureNotSupported: FOR UPDATE cannot be applied to the nullable side of an outer join` errors during cancellation or updates.
 2. **Discrete Slot Atomicity & Engine-Level Constraints (`BookingSlot` Locks)**:
    - When a multi-hour reservation is requested, it is decomposed into atomic 1-hour physical lock units (`BookingSlot`).
    - A database-enforced composite unique constraint `uq_court_date_slot(court_id, date, time_slot)` acts as defense-in-depth, guaranteeing that no two transactions can lock the same court-hour combination regardless of execution timing.
@@ -53,6 +54,39 @@ Standard booking systems frequently suffer from race conditions when two users r
    - If a race condition occurs, the database engine triggers an `IntegrityError`, immediately executing `db.session.rollback()` and returning a graceful `409 Conflict` (`BookingConflictError`) to the user.
 4. **Multi-Resource Availability Verification**:
    - Pre-commit guards verify real-time availability across coaches (`idx_coach_slots`) and equipment stock levels before slot locking begins.
+
+---
+
+## 🕒 UTC Normalization & Timezone Offset Handling
+
+Local booking dates and times without timezone offsets frequently introduce date-boundary rounding bugs. If a user in a positive offset timezone (e.g. `Asia/Kolkata` at UTC+5:30) or negative offset (e.g. `America/New_York` at UTC-5) books a slot across midnight, server-local calendar day comparisons can cause off-by-one day slot assignments or false past-slot rejections.
+
+CourtBook Pro enforces strict UTC normalization across the entire data layer:
+
+* **Explicit UTC Ranges (`app/utils/timezone.py`)**:
+  - `slot_to_utc_range(booking_date, time_slot, duration, tz_name)` converts local date and time strings directly to unambiguous UTC start and end bounds (`datetime(..., tzinfo=timezone.utc)`).
+  - Slots crossing midnight (e.g. 23:00 IST to 01:00 IST next day) cleanly roll over calendar dates in UTC without boundary truncation.
+* **Database Storage (`TIMESTAMPTZ`)**:
+  - All timestamp columns across `Booking`, `BookingSlot`, `User`, `Court`, `Coach`, and `Equipment` use `db.DateTime(timezone=True)`, which PostgreSQL stores natively as `TIMESTAMPTZ`.
+  - Every `Booking` and `BookingSlot` carries explicit `start_time_utc`, `end_time_utc`, and `timezone` columns for unambiguous audits.
+* **Client Timezone Negotiation**:
+  - The client automatically transmits the browser's IANA timezone (`Intl.DateTimeFormat().resolvedOptions().timeZone`) on reservation payloads.
+  - Pydantic's `BookingCreateSchema` validates that the computed UTC end time is not in the past relative to `datetime.now(timezone.utc)`.
+
+---
+
+## 🐳 Environment Consistency: Pure PostgreSQL (Dev & CI Parity)
+
+Testing concurrency-sensitive applications against SQLite introduces dangerous dev/prod divergence: **SQLite locks the entire database file for writes**, completely masking PostgreSQL row-level locking race conditions and sequence bugs.
+
+CourtBook Pro eliminates SQLite divergence by enforcing PostgreSQL across all environments:
+
+* **Production-Parity Local Development (`docker-compose.yml`)**:
+  - Local development runs against a native **PostgreSQL 16 Alpine** container (`courtbook-postgres`), guaranteeing identical row-level `FOR UPDATE` semantics and sequence increment behavior.
+* **Containerized CI Testing (`.github/workflows/ci.yml`)**:
+  - GitHub Actions runs every push against a dedicated PostgreSQL 16 service container with full healthchecks.
+* **Automatic Sequence Synchronization**:
+  - Sequence resets (`setval(pg_get_serial_sequence(...))`) ensure PostgreSQL primary key sequences remain synchronized after mock seeding and transactional rollbacks.
 
 ---
 
@@ -154,6 +188,7 @@ CourtBook-Pro/
 
 ### 1. Prerequisites
 *   Python 3.10 or higher
+*   Docker & Docker Compose (or access to PostgreSQL 16)
 *   Git
 
 ### 2. Setup Virtual Environment
@@ -170,7 +205,13 @@ source .venv/bin/activate       # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Initialize Database & Seed Sample Data
+### 3. Start PostgreSQL Container
+```bash
+# Start local PostgreSQL 16 instance via Docker Compose
+docker compose up -d
+```
+
+### 4. Initialize Database & Seed Sample Data
 ```bash
 # Create tables and load sample courts, coaches, equipment & pricing rules
 python cli.py init-db
@@ -180,7 +221,7 @@ python cli.py seed-data
 python cli.py create-admin --username admin --email admin@courtbook.com --password Admin@123456
 ```
 
-### 4. Run the Development Server
+### 5. Run the Development Server
 ```bash
 python run.py
 ```
@@ -194,12 +235,13 @@ Run the automated test suite with Pytest:
 ```bash
 pytest tests/ -v
 ```
-All **38 tests** execute in an isolated in-memory SQLite database, verifying:
+All **43 tests** execute with strict PostgreSQL compatibility, verifying:
 *   Authentication flows & duplicate user protection
-*   Pessimistic row-level locking & database unique constraint slot isolation
-*   Booking slot creation and double-booking conflict prevention
-*   Dynamic pricing formulas across peak hours, weekends, and discounts
-*   Role-based admin access control and CRUD endpoints
+*   Pessimistic row-level locking (`with_for_update`) & PostgreSQL outer-join safe locking
+*   Real concurrent thread race-condition prevention & physical slot uniqueness
+*   UTC timestamp conversions, positive/negative timezone offsets, and midnight rollover transitions
+*   Dynamic pricing formulas across peak hours, weekends, and multi-hour bundle discounts
+*   Role-based admin access control and resource CRUD endpoints
 
 ---
 

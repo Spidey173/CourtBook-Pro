@@ -40,6 +40,9 @@ class BaseConfig:
     # Static asset caching (24 hours)
     SEND_FILE_MAX_AGE_DEFAULT = 86400
 
+    # Venue Timezone (enforces consistent UTC conversions)
+    VENUE_TIMEZONE = os.environ.get('VENUE_TIMEZONE', 'Asia/Kolkata')
+
     # Flask-Compress settings
     COMPRESS_MIMETYPES = [
         'text/html',
@@ -54,7 +57,7 @@ class BaseConfig:
 
 
 
-DEFAULT_DB_URL = "sqlite:///courtbook.db"
+DEFAULT_DB_URL = "postgresql+psycopg2://postgres:postgrespassword@localhost:5432/courtbook"
 
 
 def _normalize_db_url(url: str) -> str:
@@ -68,7 +71,7 @@ def _normalize_db_url(url: str) -> str:
 
 
 class DevelopmentConfig(BaseConfig):
-    """Development configuration."""
+    """Development configuration enforcing PostgreSQL."""
     DEBUG = True
     TESTING = False
     SQLALCHEMY_DATABASE_URI = _normalize_db_url(
@@ -77,10 +80,12 @@ class DevelopmentConfig(BaseConfig):
 
 
 class TestingConfig(BaseConfig):
-    """Testing configuration."""
+    """Testing configuration supporting PostgreSQL container or in-memory fallback."""
     DEBUG = False
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_DATABASE_URI = _normalize_db_url(
+        os.environ.get('TEST_DATABASE_URL') or os.environ.get('DATABASE_URL') or 'sqlite:///:memory:'
+    )
     SQLALCHEMY_ENGINE_OPTIONS = {}
     WTF_CSRF_ENABLED = False
     RATELIMIT_ENABLED = False

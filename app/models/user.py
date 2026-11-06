@@ -15,7 +15,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationship to bookings with cascade deletion safety
     bookings = db.relationship('Booking', back_populates='user', lazy='dynamic', cascade='all, delete-orphan')

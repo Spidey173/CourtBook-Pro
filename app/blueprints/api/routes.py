@@ -389,7 +389,8 @@ def create_booking_endpoint():
             time_slot=validated.time_slot,
             duration=validated.duration,
             coach_id=validated.coach_id,
-            equipment_requests=validated.equipment
+            equipment_requests=validated.equipment,
+            client_timezone=validated.client_timezone
         )
         return success_response(
             data=booking_result,

@@ -739,13 +739,18 @@ async function submitBooking() {
     btn.innerHTML = '<span>⚡ Securing Row Lock & Slots...</span>';
 
     try {
+        const clientTz = (typeof Intl !== 'undefined' && Intl.DateTimeFormat)
+            ? Intl.DateTimeFormat().resolvedOptions().timeZone
+            : 'Asia/Kolkata';
+
         const payload = {
             court_id: court.id,
             date: bookingDate,
             time_slot: startSlot,
             duration: duration,
             coach_id: coach ? coach.id : null,
-            equipment: equipRequests
+            equipment: equipRequests,
+            client_timezone: clientTz
         };
 
         const result = await ApiClient.post('/api/bookings/create', payload);

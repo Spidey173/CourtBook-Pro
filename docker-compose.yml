@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Production-Grade PostgreSQL Database Service
+  db:
+    image: postgres:16-alpine
+    container_name: courtbook_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgrespassword}
+      POSTGRES_DB: ${POSTGRES_DB:-courtbook}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Application Server (Flask + Gunicorn/WSGI)
+  web:
+    build: .
+    container_name: courtbook_web
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgrespassword}@db:5432/${POSTGRES_DB:-courtbook}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - VENUE_TIMEZONE=${VENUE_TIMEZONE:-Asia/Kolkata}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

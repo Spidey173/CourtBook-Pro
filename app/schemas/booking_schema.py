@@ -20,6 +20,7 @@ class BookingCreateSchema(BaseModel):
     coach_id: Optional[int] = Field(default=None, description="Optional Coach ID")
     equipment: Dict[str, int] = Field(default_factory=dict, description="Dictionary of equipment_id -> quantity")
     client_estimated_price: Optional[int] = Field(default=None, description="Optional client estimate for mismatch warning")
+    client_timezone: Optional[str] = Field(default=None, description="Client IANA timezone e.g. 'Asia/Kolkata', 'UTC'")
 
     @model_validator(mode='before')
     @classmethod
@@ -34,6 +35,11 @@ class BookingCreateSchema(BaseModel):
             # Support camelCase timeSlot
             if 'time_slot' not in data and 'timeSlot' in data:
                 data['time_slot'] = data['timeSlot']
+            # Support timezone/clientTimezone
+            if 'client_timezone' not in data and 'clientTimezone' in data:
+                data['client_timezone'] = data['clientTimezone']
+            elif 'client_timezone' not in data and 'timezone' in data:
+                data['client_timezone'] = data['timezone']
             # Support totalPrice as estimate
             if 'client_estimated_price' not in data and 'totalPrice' in data:
                 data['client_estimated_price'] = data['totalPrice']
@@ -51,10 +57,22 @@ class BookingCreateSchema(BaseModel):
     @field_validator('date')
     @classmethod
     def validate_booking_date(cls, v: datetime.date) -> datetime.date:
-        today = datetime.date.today()
-        if v < today:
+        from app.utils.timezone import get_current_venue_date
+        current_venue_date = get_current_venue_date()
+        # Allow same date in venue timezone or international date line margin (-1 day allowed only if timestamp is future)
+        if v < current_venue_date - datetime.timedelta(days=1):
             raise ValueError(f"Booking date {v} cannot be in the past.")
         return v
+
+    @model_validator(mode='after')
+    def validate_utc_not_in_past(self) -> 'BookingCreateSchema':
+        from app.utils.timezone import slot_to_utc_range
+        # Verify slot hasn't already elapsed in UTC
+        start_utc, end_utc = slot_to_utc_range(self.date, self.time_slot, self.duration, self.client_timezone)
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        if end_utc <= now_utc:
+            raise ValueError(f"Selected slot {self.date} {self.time_slot} has already elapsed in UTC.")
+        return self
 
 
 class PriceCalculateSchema(BaseModel):

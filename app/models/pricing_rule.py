@@ -16,8 +16,8 @@ class PricingRule(db.Model):
     discount = db.Column(db.Float, default=0.0, nullable=False)
     min_items = db.Column(db.Integer, nullable=True)
     apply_days = db.Column(db.String(50), nullable=True)  # "1,2,3,4,5"
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
-    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
     def to_dict(self) -> dict:
         """Convert pricing rule to dictionary."""

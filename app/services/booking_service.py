@@ -37,12 +37,16 @@ class BookingService:
         time_slot: str,
         duration: int = 1,
         coach_id: Optional[int] = None,
-        equipment_requests: Optional[Dict[str, int]] = None
+        equipment_requests: Optional[Dict[str, int]] = None,
+        client_timezone: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Atomically creates a new court reservation with multi-resource validation,
-        physical slot locking, and authoritative server-side price calculation.
+        pessimistic row locking, explicit UTC timestamp normalization, and server-side pricing.
         """
+        from app.utils.timezone import slot_to_utc_range, get_venue_timezone
+        tz_to_use = client_timezone or str(get_venue_timezone())
+        start_utc, end_utc = slot_to_utc_range(booking_date, time_slot, duration, tz_to_use)
         equipment_requests = equipment_requests or {}
         # Normalize equipment dictionary keys to int
         cleaned_equip: Dict[int, int] = {}
@@ -136,19 +140,25 @@ class BookingService:
                 time_slot=time_slot,
                 duration=duration,
                 total_price=total_price,
-                status=BookingStatus.CONFIRMED.value
+                status=BookingStatus.CONFIRMED.value,
+                start_time_utc=start_utc,
+                end_time_utc=end_utc,
+                timezone=tz_to_use
             )
             db.session.add(booking)
             db.session.flush()  # Flush to acquire booking.id
 
-            # Insert physical slot locks for each consecutive hour
+            # Insert physical slot locks for each consecutive hour with UTC timestamps
             for slot in consecutive_slots:
+                slot_start_utc, slot_end_utc = slot_to_utc_range(booking_date, slot, 1, tz_to_use)
                 booking_slot = BookingSlot(
                     booking_id=booking.id,
                     court_id=court_id,
                     coach_id=coach_id,
                     date=booking_date,
-                    time_slot=slot
+                    time_slot=slot,
+                    start_time_utc=slot_start_utc,
+                    end_time_utc=slot_end_utc
                 )
                 db.session.add(booking_slot)
 
@@ -229,40 +239,32 @@ class BookingService:
     @classmethod
     def auto_complete_past_bookings(cls) -> int:
         """
-        Automatically marks past confirmed bookings as completed.
+        Automatically marks past confirmed bookings as completed using exact UTC timestamps.
         """
-        now = datetime.now()
-        today = now.date()
-        current_time_str = now.strftime('%H:%M')
+        from app.utils.timezone import get_current_utc_time, get_current_venue_date
+        now_utc = get_current_utc_time()
+        today_venue = get_current_venue_date()
+        updated_count = 0
 
-        # 1. Past dates
-        past_bookings = Booking.query.filter(
-            Booking.date < today,
+        # 1. Complete bookings where end_time_utc has elapsed
+        utc_past_bookings = Booking.query.filter(
+            Booking.end_time_utc != None,
+            Booking.end_time_utc <= now_utc,
             Booking.status == BookingStatus.CONFIRMED.value
         ).all()
-
-        updated_count = 0
-        for b in past_bookings:
+        for b in utc_past_bookings:
             b.status = BookingStatus.COMPLETED.value
             updated_count += 1
 
-        # 2. Today's bookings where scheduled duration has passed
-        today_bookings = Booking.query.filter(
-            Booking.date == today,
+        # 2. Legacy rows where end_time_utc is null: compare against venue date
+        legacy_past_bookings = Booking.query.filter(
+            Booking.end_time_utc == None,
+            Booking.date < today_venue,
             Booking.status == BookingStatus.CONFIRMED.value
         ).all()
-
-        for b in today_bookings:
-            try:
-                slots = AvailabilityService.get_slots_for_duration(b.time_slot, b.duration or 1)
-                last_slot = slots[-1] if slots else b.time_slot
-                end_hour = int(last_slot.split(':')[0]) + 1
-                end_time_str = f"{end_hour:02d}:00"
-                if current_time_str >= end_time_str:
-                    b.status = BookingStatus.COMPLETED.value
-                    updated_count += 1
-            except Exception:
-                pass
+        for b in legacy_past_bookings:
+            b.status = BookingStatus.COMPLETED.value
+            updated_count += 1
 
         if updated_count > 0:
             db.session.commit()

@@ -1,3 +1,4 @@
+
 /**
  * CourtBook Pro — TypeScript Domain Declarations & Schema Contracts
  * Provides complete compile-time and editor type safety for the booking engine.
@@ -61,6 +62,8 @@ export interface BookingSlot {
     coach_id?: number | null;
     date: string;
     time_slot: string;
+    start_time_utc?: string | null;
+    end_time_utc?: string | null;
 }
 
 export interface BookingEquipmentItem {
@@ -84,6 +87,9 @@ export interface Booking {
     total_price: number;
     status: BookingStatus;
     created_at?: string;
+    start_time_utc?: string | null;
+    end_time_utc?: string | null;
+    timezone?: string;
     equipment?: BookingEquipmentItem[];
     is_optimistic?: boolean;
 }
@@ -107,6 +113,7 @@ export interface BookingRequestPayload {
     duration: number;
     coach_id: number | null;
     equipment: Record<number, number>;
+    client_timezone?: string;
 }
 
 export interface AvailabilityData {

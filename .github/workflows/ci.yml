@@ -8,11 +8,26 @@ on:
 
 jobs:
   test:
-    name: Run Pytest Suite
+    name: Run Pytest Suite on PostgreSQL
     runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ["3.10", "3.11", "3.12"]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+          POSTGRES_DB: courtbook_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
       - name: Checkout Repository
@@ -30,11 +45,12 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-asyncio
 
-      - name: Run Pytest
+      - name: Run Pytest against PostgreSQL
         env:
           FLASK_ENV: testing
           TESTING: True
           SECRET_KEY: test-secret-key-for-ci
+          TEST_DATABASE_URL: postgresql+psycopg2://postgres:postgrespassword@localhost:5432/courtbook_test
+          VENUE_TIMEZONE: Asia/Kolkata
         run: |
           pytest tests/ -v
-

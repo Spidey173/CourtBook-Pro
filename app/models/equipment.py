@@ -12,7 +12,7 @@ class Equipment(db.Model):
     price = db.Column(db.Integer, nullable=False)
     total_available = db.Column(db.Integer, nullable=False, default=0)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     booking_items = db.relationship('BookingEquipment', back_populates='equipment', lazy='dynamic')

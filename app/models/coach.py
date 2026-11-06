@@ -12,7 +12,7 @@ class Coach(db.Model):
     price = db.Column(db.Integer, nullable=False)
     specialization = db.Column(db.String(200), default='', nullable=False)
     is_active = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
     # Relationships
     bookings = db.relationship('Booking', back_populates='coach', lazy='dynamic')
