@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, redirect, url_for, request, jsonify, send_from_directory, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import generate_csrf
-from app.extensions import db, limiter
+from app.extensions import db, limiter, csrf
 from app.models.user import User
 from app.schemas.auth_schema import LoginSchema, RegisterSchema
 from app.utils.responses import success_response, error_response
@@ -141,6 +141,7 @@ def get_current_user_profile():
 
 
 @auth_bp.route('/demo-login', methods=['POST'])
+@csrf.exempt
 def demo_login():
     """Endpoint for instant demo login (user or admin)."""
     from flask import current_app

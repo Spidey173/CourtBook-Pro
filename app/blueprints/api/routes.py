@@ -4,7 +4,7 @@ from datetime import datetime, date
 from typing import Dict, Any, Optional, List
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
-from app.extensions import db
+from app.extensions import db, csrf
 from app.models.user import User
 from app.models.court import Court
 from app.models.equipment import Equipment
@@ -312,6 +312,7 @@ def check_availability_legacy():
 
 @api_bp.route('/calculate-price', methods=['POST'])
 @api_bp.route('/v1/calculate-price', methods=['POST'])
+@csrf.exempt
 def calculate_price_endpoint():
     """Computes authoritative price estimate without booking."""
     data = request.get_json(silent=True) or {}

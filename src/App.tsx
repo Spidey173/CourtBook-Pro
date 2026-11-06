@@ -17,9 +17,9 @@ export const App: React.FC = () => {
   const [initializing, setInitializing] = useState<boolean>(true);
 
   // Global toast dispenser
-  const showToast = (type: ToastMessage['type'], message: string) => {
+  const showToast = (type: ToastMessage['type'], titleOrMessage: string, description?: string) => {
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 7);
-    setToasts((prev) => [...prev, { id, type, message }]);
+    setToasts((prev) => [...prev, { id, type, message: titleOrMessage, title: titleOrMessage, description }]);
   };
 
   const removeToast = (id: string) => {
