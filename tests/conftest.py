@@ -27,7 +27,9 @@ def app():
     with app.app_context():
         _db.create_all()
         yield app
-        _db.drop_all()
+        # Only drop tables if using in-memory SQLite to prevent destroying persistent schemas
+        if app.config.get('SQLALCHEMY_DATABASE_URI', '').startswith('sqlite'):
+            _db.drop_all()
 
 
 @pytest.fixture(scope='function')

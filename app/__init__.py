@@ -153,4 +153,69 @@ def create_app(config_name: str = None) -> Flask:
             'environment': config_name
         }), 200
 
+    if config_name != 'testing':
+        with app.app_context():
+            try:
+                db.create_all()
+                _init_default_data(app)
+            except Exception as e:
+                app.logger.warning("Database bootstrap skipped: %s", e)
+
     return app
+
+
+def _init_default_data(app):
+    """Seed initial courts, equipment, coaches, rules, and demo accounts if database is empty."""
+    from app.models import Court, Coach, Equipment, PricingRule, User
+    from sqlalchemy import text
+    try:
+        if Court.query.first() is None:
+            courts = [
+                Court(id=1, name='Court 1 - Indoor', type='indoor', base_price=600, is_active=True),
+                Court(id=2, name='Court 2 - Indoor', type='indoor', base_price=600, is_active=True),
+                Court(id=3, name='Court 3 - Outdoor', type='outdoor', base_price=400, is_active=True),
+                Court(id=4, name='Court 4 - Outdoor', type='outdoor', base_price=400, is_active=True)
+            ]
+            equipment = [
+                Equipment(id=1, name='Badminton Racket', price=50, total_available=10, is_active=True),
+                Equipment(id=2, name='Shuttlecocks (tube)', price=30, total_available=20, is_active=True),
+                Equipment(id=3, name='Sports Shoes', price=100, total_available=8, is_active=True)
+            ]
+            coaches = [
+                Coach(id=1, name='Coach Rajesh', price=500, specialization='Advanced Training', is_active=True),
+                Coach(id=2, name='Coach Priya', price=500, specialization='Beginners', is_active=True)
+            ]
+            pricing_rules = [
+                PricingRule(id=1, rule_type='peak_hours', enabled=True, multiplier=1.5, start_time='18:00', end_time='21:00', apply_days='1,2,3,4,5'),
+                PricingRule(id=2, rule_type='weekend', enabled=True, multiplier=1.3),
+                PricingRule(id=3, rule_type='indoor', enabled=True, multiplier=1.2),
+                PricingRule(id=4, rule_type='multiple_hours', enabled=True, discount=0.10),
+                PricingRule(id=5, rule_type='bundle', enabled=True, discount=0.15, min_items=3)
+            ]
+            db.session.add_all(courts)
+            db.session.add_all(equipment)
+            db.session.add_all(coaches)
+            db.session.add_all(pricing_rules)
+            db.session.commit()
+            for tbl in ['courts', 'equipment', 'coaches', 'pricing_rules']:
+                try:
+                    db.session.execute(text(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 0) + 1, false)"))
+                    db.session.commit()
+                except Exception:
+                    pass
+
+        if User.query.filter_by(is_admin=True).first() is None:
+            admin_user = User(username='admin', email='admin@courtbook.com', is_admin=True, is_active=True)
+            admin_user.set_password('Admin@123456')
+            db.session.add(admin_user)
+            db.session.commit()
+
+        if User.query.filter_by(username='demo_user').first() is None:
+            demo_user = User(username='demo_user', email='demo@courtbook.com', is_admin=False, is_active=True)
+            demo_user.set_password('Demo@123456')
+            db.session.add(demo_user)
+            db.session.commit()
+    except Exception as err:
+        db.session.rollback()
+        app.logger.warning("Default data seeding skipped: %s", err)
+
